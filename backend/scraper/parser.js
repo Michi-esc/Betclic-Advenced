@@ -2,6 +2,62 @@
  * Parser for Betclic SSR (Server-Side Rendered) HTML & Embedded gRPC JSON State
  */
 
+// Normalise raw Betclic competition names to clean canonical names
+function normalizeCompetition(name, country) {
+  const n = (name || '').toLowerCase().trim();
+
+  // --- France ---
+  if (n.includes('ligue 1') || n.includes('ligue1')) return { competition: 'Ligue 1', country: 'France' };
+  if (n.includes('ligue 2')) return { competition: 'Ligue 2', country: 'France' };
+  if (n.includes('coupe de france')) return { competition: 'Coupe de France', country: 'France' };
+  if (n.includes('national') && n.includes('fr')) return { competition: 'National', country: 'France' };
+
+  // --- Top 5 leagues ---
+  if (n.includes('premier league') && !n.includes('galles') && !n.includes('wales')) return { competition: 'Premier League', country: 'Angleterre' };
+  if (n.includes('laliga') || n.includes('la liga') || n.includes('primera') || n.includes('liga espagnole')) return { competition: 'LaLiga', country: 'Espagne' };
+  if (n.includes('bundesliga') && !n.includes('2')) return { competition: 'Bundesliga', country: 'Allemagne' };
+  if (n.includes('2. bundesliga') || n.includes('2.bundesliga')) return { competition: '2. Bundesliga', country: 'Allemagne' };
+  if (n.includes('serie a') && !n.includes('brésil')) return { competition: 'Serie A', country: 'Italie' };
+  if (n.includes('serie b')) return { competition: 'Serie B', country: 'Italie' };
+  if (n.includes('eredivisie')) return { competition: 'Eredivisie', country: 'Pays-Bas' };
+  if (n.includes('liga portugal') || n.includes('primeira liga')) return { competition: 'Liga Portugal', country: 'Portugal' };
+
+  // --- European cups ---
+  if (n.includes('ligue des champions') || n.includes('champions league') || n.includes('ucl')) return { competition: 'Ligue des Champions', country: 'Europe' };
+  if (n.includes('europa league') || n.includes('ligue europa')) return { competition: 'Europa League', country: 'Europe' };
+  if (n.includes('conference league') || n.includes('conférence')) return { competition: 'Conference League', country: 'Europe' };
+  if (n.includes('super coupe') || n.includes('supercup')) return { competition: 'Super Coupe', country: 'Europe' };
+
+  // --- International ---
+  if (n.includes('ligue des nations') || n.includes('nations league') || n.includes('nations uefa')) return { competition: 'Ligue des Nations UEFA', country: 'Europe' };
+  if (n.includes('qualif') && (n.includes('monde') || n.includes('world cup'))) return { competition: 'Qualifications Coupe du Monde', country: 'International' };
+  if (n.includes('qualif') && n.includes('euro')) return { competition: 'Qualifications Euro', country: 'Europe' };
+  if (n.includes('euro espoir') || (n.includes('qualif') && n.includes('espoir'))) return { competition: 'Qualif. Euro Espoirs', country: 'International' };
+  if (n.includes('espoir') || n.includes('u21') || n.includes('u20') || n.includes('u19')) return { competition: 'Équipes Espoirs', country: 'International' };
+  if (n.includes('amicaux') || n.includes('amical')) return { competition: 'Matchs Amicaux', country: 'International' };
+  if (n.includes('concacaf')) return { competition: 'CONCACAF Ligue des nations', country: 'International' };
+  if (n.includes('copa america') || n.includes('copa lib')) return { competition: 'Copa América', country: 'Amérique du Sud' };
+  if (n.includes('african') || n.includes('can ') || n.includes('afcon')) return { competition: 'CAN', country: 'Afrique' };
+  if (n.includes('afc') || n.includes('coupe asie')) return { competition: 'Coupe d\'Asie', country: 'Asie' };
+  if (n.includes('coupe du monde') || n.includes('world cup')) return { competition: 'Coupe du Monde FIFA', country: 'International' };
+
+  // Return original if no match
+  return { competition: name, country };
+}
+
+// Sports that are NOT football — used to filter out non-football matches
+const NON_FOOTBALL_KEYWORDS = [
+  'euroligue', 'nba', 'basket', 'basketball', 'euroleague', 'bbl', 'ncaa',
+  'tennis', 'rugby', 'nfl', 'nhl', 'hockey', 'golf', 'handball', 'volleyball',
+  'baseball', 'cricket', 'formula', 'moto', 'cyclisme', 'snooker', 'darts',
+  'fléchette', 'boxing', 'ufc', 'mma', 'combat',
+];
+
+function isFootball(competition) {
+  const comp = (competition || '').toLowerCase();
+  return !NON_FOOTBALL_KEYWORDS.some(kw => comp.includes(kw));
+}
+
 function mapCountryCode(code) {
   const map = {
     FR: 'France', EN: 'Angleterre', ES: 'Espagne', DE: 'Allemagne',
@@ -40,13 +96,31 @@ function buildMatch(matchId, matchName, matchDateUtc, chunk) {
   const homeTeam = matchName.substring(0, dashIdx).trim();
   const awayTeam = matchName.substring(dashIdx + 3).trim();
 
-  // Extract competition
-  let competition = 'Football';
-  let competitionCountry = '';
+  // Extract raw competition name & country code
+  let rawCompetition = 'Football';
+  let rawCountry = '';
   const compNameMatch = chunk.match(/"competition":\{"id":"[^"]+","name":"([^"]+)"/);
-  if (compNameMatch) competition = compNameMatch[1];
+  if (compNameMatch) rawCompetition = compNameMatch[1];
   const countryMatch = chunk.match(/"competition":\{"id":"[^"]+","name":"[^"]+","sport":\{[^}]+\},"countryCode":"([^"]+)"/);
-  if (countryMatch) competitionCountry = mapCountryCode(countryMatch[1]);
+  if (countryMatch) rawCountry = mapCountryCode(countryMatch[1]);
+
+  // Also try to detect sport type from SSR JSON to filter non-football
+  const sportMatch = chunk.match(/"sport":\{"id":"[^"]+","name":"([^"]+)"/);
+  if (sportMatch) {
+    const sport = sportMatch[1].toLowerCase();
+    if (sport !== 'football' && sport !== 'soccer' && sport !== 'foot') {
+      // Not football — skip
+      return null;
+    }
+  }
+
+  // Check competition name against known non-football keywords
+  if (!isFootball(rawCompetition)) return null;
+
+  // Normalize competition name to canonical form
+  const normalized = normalizeCompetition(rawCompetition, rawCountry);
+  const competition = normalized.competition;
+  const competitionCountry = normalized.country || rawCountry;
 
   // Extract odds — look for mainSelections array with odds values
   let oddsHome = null, oddsDraw = null, oddsAway = null;
@@ -105,7 +179,30 @@ function buildMatch(matchId, matchName, matchDateUtc, chunk) {
   };
 }
 
+
+function formatDate(dateStr) {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  try { return new Date(dateStr).toISOString().split('T')[0]; } catch { return dateStr; }
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return '00:00';
+  try {
+    const d = new Date(dateStr);
+    const offset = isDST(d) ? 2 : 1; // CEST / CET
+    const localH = (d.getUTCHours() + offset) % 24;
+    return `${String(localH).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  } catch { return '00:00'; }
+}
+
+function isDST(date) {
+  const jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+  const jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+  return Math.max(jan, jul) !== date.getTimezoneOffset();
+}
+
 /**
+
  * Parse the Angular SSR JSON state embedded in the page HTML.
  */
 function parseSSRMatches(html) {

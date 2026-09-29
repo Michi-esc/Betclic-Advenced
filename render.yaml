@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: betclic-advenced
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_PASSWORD
+        value: betclic2026
+      - key: GEMINI_API_KEY
+        sync: false
