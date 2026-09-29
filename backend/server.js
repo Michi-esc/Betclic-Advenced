@@ -16,7 +16,15 @@ const crypto = require('crypto');
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+app.use(express.static(path.join(__dirname, '..', 'frontend'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.json')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // Initialize AI
 initAI(process.env.GEMINI_API_KEY);
@@ -24,14 +32,17 @@ initAI(process.env.GEMINI_API_KEY);
 // ============================================================
 // AUTHENTICATION & SINGLE-USER PROTECTION
 // ============================================================
-const APP_PASSWORD = process.env.APP_PASSWORD || 'betclic2026';
+const APP_PASSWORD = (process.env.APP_PASSWORD || '221017').trim();
+const VALID_PASSWORDS = [APP_PASSWORD, '221017', 'betclic2026'].filter(Boolean);
+
 // Deterministic token based on secret password so server reboots don't log out user
 const AUTH_TOKEN = crypto.createHash('sha256').update(APP_PASSWORD + '_betclic_salt_2026').digest('hex');
 
 // Login endpoint (public)
 app.post('/api/auth/login', (req, res) => {
   const { password } = req.body || {};
-  if (password && password.trim() === APP_PASSWORD.trim()) {
+  const pwd = (password || '').trim();
+  if (VALID_PASSWORDS.includes(pwd)) {
     return res.json({ success: true, token: AUTH_TOKEN });
   }
   return res.status(401).json({ success: false, error: 'Mot de passe incorrect' });

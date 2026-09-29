@@ -10,6 +10,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: APP_PASSWORD
-        value: betclic2026
+        value: "221017"
       - key: GEMINI_API_KEY
         sync: false
