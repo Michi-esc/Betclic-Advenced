@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Betclic AI Dashboard | Pro Foot Analytics</title>
+  <meta name="description" content="Dashboard intelligent pour analyser les matchs de football Betclic avec l'IA. Cotes en temps réel, analyses approfondies, combinés optimisés." />
+  
+  <!-- Mobile & PWA meta tags -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0B0E14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Betclic AI" />
+  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="css/combined.css" />
+  <link rel="stylesheet" href="css/lockscreen.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <div class="logo-icon">⚽</div>
+        <div class="logo-text">
+          <span class="logo-brand">BETCLIC</span>
+          <span class="logo-sub">AI DASHBOARD</span>
+        </div>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          LIVE
+        </div>
+      </div>
+
+      <div class="header-stats" id="header-stats">
+        <div class="stat-chip">
+          <span class="stat-chip-value" id="stat-total">—</span>
+          <span class="stat-chip-label">Matchs</span>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-value" id="stat-analyzed">—</span>
+          <span class="stat-chip-label">Analysés</span>
+        </div>
+        <div class="stat-chip" id="last-update-chip">
+          <span class="stat-chip-value" id="stat-update">—</span>
+          <span class="stat-chip-label">Dernière MAJ</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-scrape" id="btn-scrape" onclick="triggerScrape()">
+          <span class="btn-icon">🔄</span>
+          <span>Actualiser</span>
+        </button>
+        <button class="btn btn-lock-toggle" id="btn-lock-toggle" onclick="lockApp()" title="Verrouiller la session">
+          <span class="btn-icon">🔒</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== CATEGORY TABS & FILTERS NAVIGATION ===== -->
+  <div class="navigation-panel">
+    <!-- Category Tabs Navigation -->
+    <div class="category-tabs-container">
+      <div class="category-tabs" id="category-tabs">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </div>
+
+    <!-- Sub-competitions & Tools Filters Bar -->
+    <div class="filters-bar">
+      <div class="filters-inner">
+        <div class="filter-group competitions-group">
+          <label class="filter-label">Compétitions</label>
+          <div class="filter-chips" id="competition-filters">
+            <!-- Rendered dynamically based on selected category -->
+          </div>
+        </div>
+        <div class="filter-actions-group">
+          <div class="filter-group sort-group">
+            <label class="filter-label">Trier</label>
+            <select class="filter-select" id="sort-select" onchange="setSorting(this.value)">
+              <option value="date">Date & Heure</option>
+              <option value="odds_home">Cote Domicile</option>
+              <option value="odds_away">Cote Extérieur</option>
+              <option value="competition">Compétition</option>
+            </select>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Rechercher une équipe..." oninput="setSearch(this.value)" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MAIN NAV (pages) ===== -->
+  <div class="page-nav" id="page-nav">
+    <button class="page-nav-btn active" id="pnav-matches" onclick="switchPage('matches')">
+      ⚽ Matchs
+    </button>
+    <button class="page-nav-btn" id="pnav-combined" onclick="switchPage('combined')">
+      ⚡ Combinés IA
+    </button>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main-content" id="page-matches">
+
+    <!-- Loading State -->
+    <div class="loading-state" id="loading-state">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Chargement des matchs...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="empty-state">
+      <div class="empty-icon">⚽</div>
+      <h2>Aucun match trouvé</h2>
+      <p>Cliquez sur "Actualiser" pour récupérer les matchs Betclic</p>
+      <button class="btn btn-scrape" onclick="triggerScrape()">🔄 Récupérer les matchs</button>
+    </div>
+
+    <!-- Batch Analysis Bar for current category -->
+    <div class="batch-bar" id="batch-bar">
+      <div class="batch-bar-left">
+        <button class="btn-batch-analyze" id="btn-batch-analyze" onclick="startBatchAnalysis()">
+          <span class="batch-btn-icon">⚡</span>
+          <span id="batch-btn-text">Analyser tous les matchs</span>
+        </button>
+        <label class="batch-checkbox-wrap" title="Si coché, ré-analyse et met à jour même les matchs déjà analysés">
+          <input type="checkbox" id="batch-force-re-eval" onchange="updateBatchBar()" />
+          <span class="batch-checkbox-custom"></span>
+          <span class="batch-checkbox-text">Réévaluer ceux déjà analysés</span>
+        </label>
+      </div>
+      <div class="batch-bar-status hidden" id="batch-status">
+        <div class="batch-status-main">
+          <div class="batch-pulse-dot"></div>
+          <div class="batch-info-col">
+            <span class="batch-title" id="batch-status-text">Analyse en cours...</span>
+            <span class="batch-sub" id="batch-status-sub">Initialisation...</span>
+          </div>
+        </div>
+        <div class="batch-progress-wrapper">
+          <div class="batch-progress-bar" id="batch-progress-fill" style="width: 0%"></div>
+        </div>
+        <button class="btn-batch-stop" onclick="stopBatchAnalysis()" title="Interrompre le traitement">⏹️ Arrêter</button>
+      </div>
+    </div>
+
+    <!-- Matches Grid -->
+    <div class="matches-grid" id="matches-grid"></div>
+  </main>
+
+  <!-- ===== COMBINÉS IA PAGE ===== -->
+  <main class="main-content hidden" id="page-combined" style="padding:0">
+    <div id="combined-page"></div>
+  </main>
+
+  <!-- ===== MODAL ANALYSE IA ===== -->
+  <div class="modal-overlay hidden" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal" id="modal">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+
+      <div class="modal-header" id="modal-header">
+        <div class="modal-match-title">
+          <span id="modal-home">Équipe Domicile</span>
+          <span class="vs-badge">VS</span>
+          <span id="modal-away">Équipe Extérieur</span>
+        </div>
+        <div class="modal-meta">
+          <span id="modal-competition">Compétition</span>
+          <span>•</span>
+          <span id="modal-date">Date</span>
+          <span>•</span>
+          <span id="modal-venue">Stade</span>
+        </div>
+      </div>
+
+      <div class="modal-loading hidden" id="modal-loading">
+        <div class="ai-loader">
+          <div class="ai-loader-brain">🧠</div>
+          <div class="ai-loader-text">L'IA analyse le match...</div>
+          <div class="ai-loader-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="ai-loader-steps" id="ai-steps">
+            <div class="step active">📡 Collecte des données...</div>
+            <div class="step">🌤️ Analyse météo...</div>
+            <div class="step">🏥 Vérification des blessures...</div>
+            <div class="step">📊 Analyse de forme...</div>
+            <div class="step">🎯 Génération de prédiction...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-body" id="modal-body">
+        <div class="analysis-grid">
+
+          <!-- Prediction Card -->
+          <div class="analysis-card prediction-card" id="card-prediction">
+            <div class="card-header">
+              <span class="card-icon">🎯</span>
+              <h3>Prédiction IA</h3>
+              <span class="confidence-badge" id="modal-confidence">—</span>
+            </div>
+            <div class="prediction-result" id="modal-prediction">—</div>
+            <div class="recommendation-box" id="modal-recommendation">—</div>
+          </div>
+
+          <!-- Weather Card -->
+          <div class="analysis-card">
+            <div class="card-header">
+              <span class="card-icon">🌤️</span>
+              <h3>Météo</h3>
+            </div>
+            <div class="card-content" id="modal-weather">—</div>
+          </div>
+
+          <!-- Form Card -->
+          <div class="analysis-card">
+            <div class="card-header">
+              <span class="card-icon">📊</span>
+              <h3>Forme Récente</h3>
+            </div>
+            <div class="form-comparison">
+              <div class="form-team">
+                <div class="form-label" id="form-home-name">Domicile</div>
+                <div class="form-dots" id="modal-home-form">—</div>
+              </div>
+              <div class="form-team">
+                <div class="form-label" id="form-away-name">Extérieur</div>
+                <div class="form-dots" id="modal-away-form">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Injuries Home -->
+          <div class="analysis-card">
+            <div class="card-header">
+              <span class="card-icon">🏥</span>
+              <h3>Blessures & Absences</h3>
+            </div>
+            <div class="injuries-grid">
+              <div>
+                <div class="injury-team-label" id="injury-home-label">Domicile</div>
+                <div class="card-content" id="modal-home-injuries">—</div>
+              </div>
+              <div>
+                <div class="injury-team-label" id="injury-away-label">Extérieur</div>
+                <div class="card-content" id="modal-away-injuries">—</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Head to Head -->
+          <div class="analysis-card">
+            <div class="card-header">
+              <span class="card-icon">⚔️</span>
+              <h3>Confrontations Directes</h3>
+            </div>
+            <div class="card-content" id="modal-h2h">—</div>
+          </div>
+
+          <!-- Recent News -->
+          <div class="analysis-card full-width">
+            <div class="card-header">
+              <span class="card-icon">📰</span>
+              <h3>Actualités & Infos Clés</h3>
+            </div>
+            <div class="card-content" id="modal-news">—</div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <span class="analysis-timestamp" id="modal-analyzed-at">—</span>
+          <button class="btn btn-refresh-analysis" id="btn-refresh-analysis">
+            🔄 Relancer l'analyse IA
+          </button>
+        </div>
+      </div>
+
+      <!-- Prompt to analyze -->
+      <div class="modal-prompt" id="modal-prompt">
+        <div class="prompt-icon">🤖</div>
+        <h3>Lancer l'analyse IA</h3>
+        <p>L'IA va rechercher des informations approfondies sur ce match :</p>
+        <ul>
+          <li>🌤️ Conditions météo prévues</li>
+          <li>🏥 Joueurs blessés et absents</li>
+          <li>📊 Forme récente des équipes</li>
+          <li>⚔️ Historique des confrontations</li>
+          <li>📰 Actualités importantes</li>
+          <li>🎯 Prédiction et recommandation</li>
+        </ul>
+        <button class="btn btn-analyze-now" id="btn-analyze-now">
+          <span>🧠</span>
+          Analyser ce match
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== LOCK SCREEN MODAL ===== -->
+  <div class="lock-modal-overlay hidden" id="lock-screen-modal">
+    <div class="lock-modal-card">
+      <div class="lock-icon-badge">
+        <span class="lock-emoji">🔐</span>
+      </div>
+      <h2 class="lock-title">Betclic AI Pro</h2>
+      <p class="lock-subtitle">Espace privé sécurisé. Entrez votre mot de passe pour accéder au dashboard et aux combinés IA.</p>
+      
+      <form onsubmit="submitUnlock(event)" class="lock-form">
+        <div class="lock-input-wrapper">
+          <span class="input-icon">🔑</span>
+          <input 
+            type="password" 
+            id="lock-password-input" 
+            class="lock-input" 
+            placeholder="Mot de passe secret..." 
+            autocomplete="current-password"
+            required 
+          />
+        </div>
+        <div class="lock-error" id="lock-error-msg"></div>
+        <button type="submit" class="btn btn-lock-submit" id="btn-lock-submit">
+          <span>Déverrouiller l'accès</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </form>
+
+      <div class="lock-footer-info">
+        <span class="lock-status-dot"></span>
+        <span>Accès privé chiffré & protégé</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST NOTIFICATIONS ===== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="js/config.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/combined.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

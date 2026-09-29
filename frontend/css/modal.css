@@ -1,0 +1,691 @@
+/* ================================================================
+   MODAL
+   ================================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), var(--shadow-glow-blue);
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px) scale(0.97); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.modal-close {
+  position: sticky;
+  top: 16px;
+  float: right;
+  margin: 16px 16px 0 0;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.modal-close:hover { background: var(--accent-red-dim); border-color: var(--accent-red); color: var(--accent-red); }
+
+/* Modal Header */
+.modal-header {
+  padding: 28px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(41,121,255,0.06), rgba(0,230,118,0.04));
+  text-align: center;
+  clear: both;
+}
+
+.modal-match-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.modal-match-title span:first-child,
+.modal-match-title span:last-child {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.vs-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--accent-blue-dim);
+  border: 1px solid rgba(41,121,255,0.3);
+  color: var(--accent-blue);
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+.modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+/* AI Loader */
+.modal-loading {
+  padding: 50px 28px;
+  text-align: center;
+}
+
+.ai-loader { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+.ai-loader-brain {
+  font-size: 48px;
+  animation: brainPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes brainPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(170,0,255,0.4)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 20px rgba(170,0,255,0.8)); }
+}
+
+.ai-loader-text {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-loader-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.ai-loader-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-purple);
+  border-radius: 50%;
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.ai-loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.ai-loader-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.step {
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: var(--transition);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.step.active {
+  color: var(--accent-purple);
+  background: rgba(170,0,255,0.08);
+  font-weight: 600;
+}
+
+.step.done {
+  color: var(--accent-green);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Modal Body */
+.modal-body { padding: 24px 28px; }
+.modal-prompt { padding: 40px 28px; text-align: center; }
+
+.prompt-icon { font-size: 52px; margin-bottom: 16px; }
+.modal-prompt h3 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+.modal-prompt p { color: var(--text-secondary); margin-bottom: 16px; }
+
+.modal-prompt ul {
+  list-style: none;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 28px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 24px;
+}
+
+.modal-prompt ul li { font-size: 14px; color: var(--text-secondary); }
+
+/* Analysis Grid */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.analysis-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  transition: var(--transition);
+}
+
+.analysis-card:hover { border-color: var(--border-bright); }
+.analysis-card.full-width { grid-column: 1 / -1; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-icon { font-size: 18px; }
+
+.card-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.card-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* Prediction Card */
+.prediction-card {
+  border-color: rgba(170,0,255,0.2);
+  background: linear-gradient(135deg, rgba(170,0,255,0.06), rgba(98,0,234,0.04));
+}
+
+.confidence-badge {
+  background: var(--accent-green-dim);
+  border: 1px solid rgba(0,230,118,0.3);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: 'Orbitron', sans-serif;
+  margin-left: auto;
+}
+
+.prediction-result {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.recommendation-box {
+  background: var(--accent-gold-dim);
+  border: 1px solid rgba(255,215,64,0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--accent-gold);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Form Dots */
+.form-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-team { display: flex; align-items: center; gap: 10px; }
+.form-label { font-size: 12px; color: var(--text-muted); font-weight: 600; min-width: 80px; }
+.form-dots { display: flex; gap: 5px; }
+
+.form-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.form-dot.W { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid rgba(0,230,118,0.3); }
+.form-dot.D { background: var(--accent-gold-dim); color: var(--accent-gold); border: 1px solid rgba(255,215,64,0.3); }
+.form-dot.L { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(255,82,82,0.3); }
+.form-dot.V { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid rgba(0,230,118,0.3); }
+.form-dot.N { background: var(--accent-gold-dim); color: var(--accent-gold); border: 1px solid rgba(255,215,64,0.3); }
+
+/* Injuries */
+.injuries-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.injury-team-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.analysis-timestamp {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   RISK INDICATORS — Per Market
+   ================================================================ */
+
+/* Risk badge on recommendation box */
+.bet-risk-indicator {
+  margin-top: 10px;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  border-left: 3px solid;
+}
+
+.bet-risk-indicator.risk-badge-low {
+  background: rgba(0, 230, 118, 0.08);
+  border-left-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.bet-risk-indicator.risk-badge-medium {
+  background: rgba(255, 215, 64, 0.08);
+  border-left-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.bet-risk-indicator.risk-badge-high {
+  background: rgba(255, 82, 82, 0.1);
+  border-left-color: var(--accent-red);
+  color: var(--accent-red);
+}
+
+.risk-label { font-weight: 600; }
+
+.risk-alert-text {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.avoid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  background: rgba(255, 82, 82, 0.18);
+  border: 1px solid rgba(255, 82, 82, 0.5);
+  color: var(--accent-red);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  animation: pulseDanger 1.8s ease-in-out infinite;
+}
+
+@keyframes pulseDanger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 82, 82, 0); }
+}
+
+/* Per-market risk row inside extended markets */
+.market-risk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.market-risk-row.risk-badge-low {
+  background: rgba(0, 230, 118, 0.07);
+  color: var(--accent-green);
+}
+
+.market-risk-row.risk-badge-medium {
+  background: rgba(255, 215, 64, 0.07);
+  color: var(--accent-gold);
+}
+
+.market-risk-row.risk-badge-high {
+  background: rgba(255, 82, 82, 0.09);
+  color: var(--accent-red);
+}
+
+.risk-level-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.avoid-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 82, 82, 0.15);
+  border: 1px solid rgba(255, 82, 82, 0.4);
+  color: var(--accent-red);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+.market-risk-alert {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: rgba(255, 200, 100, 0.9);
+  background: rgba(255, 160, 50, 0.07);
+  border-left: 2px solid rgba(255, 160, 50, 0.5);
+  padding: 5px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* Value bets structured display */
+.value-bets-structured {
+  grid-column: 1 / -1;
+}
+
+.value-bet-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  background: rgba(255, 215, 64, 0.04);
+  border: 1px solid rgba(255, 215, 64, 0.18);
+  border-radius: var(--radius-sm);
+}
+
+.vb-market {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vb-selection {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vb-odds {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.vb-prob {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.vb-edge {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.vb-edge.edge-positive {
+  background: rgba(0, 230, 118, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+}
+
+.vb-rationale {
+  width: 100%;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* ================================================================
+   PRO ANALYSIS MODULES (xG, Fatigue, Lineups, Market, Referee, Stakes)
+   ================================================================ */
+
+.pro-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 680px) {
+  .pro-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pro-metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.pro-metric-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.pro-metric-card.card-warning-trap {
+  border-color: rgba(255, 82, 82, 0.35);
+  background: rgba(255, 82, 82, 0.04);
+}
+
+.pm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pm-icon {
+  font-size: 16px;
+}
+
+.pm-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.pm-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.pm-badge.badge-danger {
+  background: rgba(255, 82, 82, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(255, 82, 82, 0.35);
+}
+
+.pm-badge.badge-warn {
+  background: rgba(255, 171, 0, 0.15);
+  color: #ffab00;
+  border: 1px solid rgba(255, 171, 0, 0.35);
+}
+
+.pm-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.pm-team-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-team-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.pm-stat-val {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'Orbitron', sans-serif;
+}
+
+.pm-stat-val.val-green { color: var(--accent-green); }
+.pm-stat-val.val-blue { color: var(--accent-blue); }
+
+.pm-sub-stat {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.pm-vs-bar {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pm-verdict {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.pm-rest-row, .pm-tactics-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.tactics-pill {
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.pm-sub-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pm-trend-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(0, 230, 118, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+}
+
+.pm-trap-alert {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-red);
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.25);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-top: 2px;
+}
+
+.pro-notes-text {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
