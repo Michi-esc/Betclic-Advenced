@@ -65,6 +65,14 @@ function showAnalysisData(match) {
     }
     recHtml += `</div>`;
   }
+  recHtml += `
+    <div class="modal-bet-cta-row">
+      <button class="btn-modal-bet" onclick="quickBetFromModal(currentMatchId, 'prediction')">
+        <span>💰</span>
+        <span>Enregistrer ce pronostic dans la Bankroll</span>
+      </button>
+    </div>
+  `;
   recBox.innerHTML = recHtml;
 
   // Weather at kick-off
@@ -108,12 +116,19 @@ function showAnalysisData(match) {
             <div class="market-row-title">Value Bets détectés (edge positif)</div>
             ${raw.value_bets_structured.map(vb => `
               <div class="value-bet-item">
-                <span class="vb-market">${escapeHtml(vb.market)}</span>
-                <span class="vb-selection">${escapeHtml(vb.selection)}</span>
-                <span class="vb-odds">Cote: <strong>${vb.bookmaker_odds}</strong></span>
-                <span class="vb-prob">Prob réelle: ${escapeHtml(vb.estimated_real_probability)}</span>
-                <span class="vb-edge edge-positive">${escapeHtml(vb.value_edge)}</span>
+                <div class="vb-main-info">
+                  <span class="vb-market">${escapeHtml(vb.market)}</span>
+                  <span class="vb-selection">${escapeHtml(vb.selection)}</span>
+                  <span class="vb-odds">Cote: <strong>${vb.bookmaker_odds}</strong></span>
+                  <span class="vb-prob">Prob réelle: ${escapeHtml(vb.estimated_real_probability)}</span>
+                  <span class="vb-edge edge-positive">${escapeHtml(vb.value_edge)}</span>
+                </div>
                 ${vb.rationale ? `<div class="vb-rationale">${escapeHtml(vb.rationale)}</div>` : ''}
+                <div class="vb-action-row">
+                  <button class="btn-vb-quick-bet" onclick="quickBetFromModal(currentMatchId, 'value', ${escapeHtml(JSON.stringify(JSON.stringify(vb)))})">
+                    💰 Miser ce Value Bet (${escapeHtml(vb.value_edge)})
+                  </button>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -369,3 +384,43 @@ function closeModal(event) {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal({ target: document.getElementById('modal-overlay') });
 });
+
+function quickBetFromModal(matchId, type, customData) {
+  const match = allMatches.find(m => m.id === matchId);
+  if (!match) return;
+
+  if (type === 'value' && customData) {
+    let vb = customData;
+    if (typeof customData === 'string') {
+      try { vb = JSON.parse(customData); } catch (_) {}
+    }
+    if (typeof openAddBetModal === 'function') {
+      openAddBetModal({
+        title: `${match.home_team} vs ${match.away_team}`,
+        selection: vb.selection,
+        market: vb.market || 'Value Bet',
+        odds: vb.bookmaker_odds || match.odds_home || 1.85,
+        stake: 25,
+        bet_type: 'single',
+        match_id: match.id,
+        notes: `Value Bet Edge ${vb.value_edge} — ${vb.rationale || ''}`
+      });
+    }
+    return;
+  }
+
+  // Type prediction
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title: `${match.home_team} vs ${match.away_team}`,
+      selection: match.ai_prediction || `Victoire ${match.home_team}`,
+      market: '1N2',
+      odds: match.odds_home || 1.85,
+      stake: 20,
+      bet_type: 'single',
+      match_id: match.id,
+      notes: match.ai_recommendation || ''
+    });
+  }
+}
+

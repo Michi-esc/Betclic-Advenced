@@ -2,11 +2,36 @@
    UI RENDERING, CARDS & NOTIFICATIONS
    ================================================================ */
 
+let activeQuickFilter = 'all'; // 'all', 'value', 'today', 'analyzed'
+
+function setQuickFilter(qf) {
+  activeQuickFilter = qf;
+  document.querySelectorAll('.quick-filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.qf === qf);
+  });
+  renderMatches();
+}
+
 function renderMatches() {
   const grid = document.getElementById('matches-grid');
   const emptyState = document.getElementById('empty-state');
 
   let filtered = [...allMatches];
+
+  // 0. Quick filter (Value Bets, Matchs du Jour, Analysés)
+  if (activeQuickFilter === 'value') {
+    filtered = filtered.filter(m => {
+      let raw = {};
+      try { raw = JSON.parse(m.raw_research || '{}'); } catch (_) {}
+      return (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) ||
+             (m.value_bets && m.value_bets !== '—');
+    });
+  } else if (activeQuickFilter === 'today') {
+    const todayStr = new Date().toISOString().split('T')[0];
+    filtered = filtered.filter(m => m.match_date === todayStr);
+  } else if (activeQuickFilter === 'analyzed') {
+    filtered = filtered.filter(m => !!m.ai_prediction);
+  }
 
   // 1. Filter by category
   if (activeCategory !== 'all') {
@@ -57,14 +82,25 @@ function renderMatchCard(match) {
   const dateFormatted = formatMatchDate(match.match_date);
   const bestOdd = getBestOdd(match.odds_home, match.odds_draw, match.odds_away);
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isToday = match.match_date === todayStr;
+
+  let raw = {};
+  try { raw = JSON.parse(match.raw_research || '{}'); } catch (_) {}
+
+  const hasValueBet = Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0;
+  const topVb = hasValueBet ? raw.value_bets_structured[0] : null;
+
   return `
-    <div class="match-card ${isAnalyzed ? 'analyzed' : ''}" id="card-${match.id}">
+    <div class="match-card ${isAnalyzed ? 'analyzed' : ''} ${hasValueBet ? 'has-value-bet' : ''}" id="card-${match.id}">
       <div class="card-competition">
         <div class="competition-badge">
           <span class="competition-flag">${flag}</span>
           <span class="competition-name">${escapeHtml(match.competition)}</span>
         </div>
         <div class="match-datetime">
+          ${isToday ? `<span class="badge-today">⏰ Aujourd'hui</span>` : ''}
+          ${hasValueBet ? `<span class="badge-value-pulse">💎 VALUE (${escapeHtml(topVb.value_edge)})</span>` : ''}
           <span class="match-date-text">${dateFormatted}</span>
           <span class="match-time-text">${match.match_time || '—'}</span>
         </div>
@@ -101,8 +137,6 @@ function renderMatchCard(match) {
       </div>
 
       ${isAnalyzed ? (() => {
-        let raw = {};
-        try { raw = JSON.parse(match.raw_research || '{}'); } catch (_) {}
         const tags = [];
         if (raw.result_avoid) {
           tags.push(`<span class="card-tag tag-danger">🚫 1N2 À ÉVITER</span>`);
@@ -115,7 +149,7 @@ function renderMatchCard(match) {
         if (raw.over25_avoid) {
           tags.push(`<span class="card-tag tag-danger">🚫 Buts imprévisibles</span>`);
         }
-        if (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) {
+        if (hasValueBet) {
           tags.push(`<span class="card-tag tag-value">💎 ${raw.value_bets_structured.length} Value Bet(s)</span>`);
         }
         return `
@@ -142,14 +176,60 @@ function renderMatchCard(match) {
             📍 ${escapeHtml(match.venue || match.competition_country || '—')}
           </span>
         `}
-        <button class="btn-analyze ${isAnalyzed ? 'analyzed' : ''}"
-                onclick="openModal(${match.id})"
-                id="analyze-btn-${match.id}">
-          ${isAnalyzed ? '🧠 Voir l\'analyse' : '🤖 Analyser avec l\'IA'}
-        </button>
+        <div class="card-footer-buttons">
+          <button class="btn-card-quick-bet" onclick="quickBetFromMatch(${match.id}, event)" title="Enregistrer dans ma Bankroll">
+            💰 Miser
+          </button>
+          <button class="btn-analyze ${isAnalyzed ? 'analyzed' : ''}"
+                  onclick="openModal(${match.id})"
+                  id="analyze-btn-${match.id}">
+            ${isAnalyzed ? '🧠 Voir l\'analyse' : '🤖 Analyser avec l\'IA'}
+          </button>
+        </div>
       </div>
     </div>
   `;
+}
+
+function quickBetFromMatch(matchId, event) {
+  if (event) event.stopPropagation();
+  const match = allMatches.find(m => m.id === matchId);
+  if (!match) return;
+
+  let raw = {};
+  try { raw = JSON.parse(match.raw_research || '{}'); } catch (_) {}
+
+  // If match has a value bet, prefill with value bet!
+  if (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) {
+    const vb = raw.value_bets_structured[0];
+    if (typeof openAddBetModal === 'function') {
+      openAddBetModal({
+        title: `${match.home_team} vs ${match.away_team}`,
+        selection: vb.selection,
+        market: vb.market || 'Value Bet',
+        odds: vb.bookmaker_odds || match.odds_home || 1.85,
+        stake: 25,
+        bet_type: 'single',
+        match_id: match.id,
+        notes: `Value Bet Edge ${vb.value_edge} — ${vb.rationale || ''}`
+      });
+    }
+    return;
+  }
+
+  // Otherwise prefill with AI prediction or home win
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title: `${match.home_team} vs ${match.away_team}`,
+      selection: match.ai_prediction || `Victoire ${match.home_team}`,
+      market: '1N2',
+      odds: match.odds_home || 1.85,
+      stake: 20,
+      bet_type: 'single',
+      match_id: match.id,
+      notes: match.ai_recommendation || ''
+    });
+  }
 }
 
 function renderFormDots(formStr) {

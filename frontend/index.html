@@ -17,9 +17,10 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
-  <link rel="stylesheet" href="css/combined.css?v=3" />
-  <link rel="stylesheet" href="css/lockscreen.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="css/combined.css?v=4" />
+  <link rel="stylesheet" href="css/lockscreen.css?v=4" />
+  <link rel="stylesheet" href="css/bankroll.css?v=4" />
 </head>
 <body>
 
@@ -100,9 +101,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Quick Filters Bar (Value Bets, Matchs du Jour, Analysés) -->
+    <div class="quick-filters-row">
+      <button class="quick-filter-chip active" data-qf="all" onclick="setQuickFilter('all')">
+        <span>🌟</span>
+        <span>Tous les matchs</span>
+      </button>
+      <button class="quick-filter-chip value-chip" data-qf="value" onclick="setQuickFilter('value')">
+        <span>💎</span>
+        <span>Value Bets (EV+)</span>
+      </button>
+      <button class="quick-filter-chip today-chip" data-qf="today" onclick="setQuickFilter('today')">
+        <span>⏰</span>
+        <span>Matchs d'Aujourd'hui</span>
+      </button>
+      <button class="quick-filter-chip" data-qf="analyzed" onclick="setQuickFilter('analyzed')">
+        <span>🧠</span>
+        <span>Analysés par l'IA</span>
+      </button>
+    </div>
   </div>
 
-  <!-- ===== MAIN NAV (pages) ===== -->
+  <!-- ===== MAIN NAV (Desktop pages) ===== -->
   <div class="page-nav" id="page-nav">
     <button class="page-nav-btn active" id="pnav-matches" onclick="switchPage('matches')">
       ⚽ Matchs
@@ -110,9 +131,15 @@
     <button class="page-nav-btn" id="pnav-combined" onclick="switchPage('combined')">
       ⚡ Combinés IA
     </button>
+    <button class="page-nav-btn" id="pnav-bankroll" onclick="switchPage('bankroll')">
+      💰 Bankroll
+    </button>
+    <button class="page-nav-btn" id="pnav-settings" onclick="switchPage('settings')">
+      ⚙️ Paramètres
+    </button>
   </div>
 
-  <!-- ===== MAIN CONTENT ===== -->
+  <!-- ===== MAIN CONTENT: MATCHES ===== -->
   <main class="main-content" id="page-matches">
 
     <!-- Loading State -->
@@ -164,6 +191,16 @@
   <!-- ===== COMBINÉS IA PAGE ===== -->
   <main class="main-content hidden" id="page-combined" style="padding:0">
     <div id="combined-page"></div>
+  </main>
+
+  <!-- ===== BANKROLL PAGE ===== -->
+  <main class="main-content hidden" id="page-bankroll" style="padding:0">
+    <div id="bankroll-page"></div>
+  </main>
+
+  <!-- ===== SETTINGS & ALERTS PAGE ===== -->
+  <main class="main-content hidden" id="page-settings" style="padding:0">
+    <div id="settings-page"></div>
   </main>
 
   <!-- ===== MODAL ANALYSE IA ===== -->
@@ -350,13 +387,35 @@
   <!-- ===== TOAST NOTIFICATIONS ===== -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- ===== MOBILE BOTTOM NAVIGATION BAR ===== -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="bnav-btn active" id="bnav-matches" onclick="switchPage('matches')">
+      <span class="bnav-icon">⚽</span>
+      <span class="bnav-label">Matchs</span>
+    </button>
+    <button class="bnav-btn" id="bnav-combined" onclick="switchPage('combined')">
+      <span class="bnav-icon">⚡</span>
+      <span class="bnav-label">Combinés</span>
+    </button>
+    <button class="bnav-btn" id="bnav-bankroll" onclick="switchPage('bankroll')">
+      <span class="bnav-icon">💰</span>
+      <span class="bnav-label">Bankroll</span>
+    </button>
+    <button class="bnav-btn" id="bnav-settings" onclick="switchPage('settings')">
+      <span class="bnav-icon">⚙️</span>
+      <span class="bnav-label">Réglages</span>
+    </button>
+  </nav>
+
   <!-- ===== SCRIPTS ===== -->
-  <script src="js/config.js?v=3"></script>
-  <script src="js/ui.js?v=3"></script>
-  <script src="js/filters.js?v=3"></script>
-  <script src="js/modal.js?v=3"></script>
-  <script src="js/api.js?v=3"></script>
-  <script src="js/combined.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="js/config.js?v=4"></script>
+  <script src="js/ui.js?v=4"></script>
+  <script src="js/filters.js?v=4"></script>
+  <script src="js/modal.js?v=4"></script>
+  <script src="js/api.js?v=4"></script>
+  <script src="js/combined.js?v=4"></script>
+  <script src="js/bankroll.js?v=4"></script>
+  <script src="js/settings.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

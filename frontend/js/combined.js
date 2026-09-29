@@ -887,8 +887,10 @@ function renderCombinedResult(combined, container) {
 
       <!-- Actions -->
       <div class="result-actions">
+        <button class="btn-copy-ticket" onclick="copyCombinedTicket(combinedState.currentResult)">📋 Copier le ticket</button>
+        <button class="btn-bankroll-bet" onclick="saveCombinedToBankroll(combinedState.currentResult)">💰 Enregistrer dans la Bankroll</button>
         <button class="btn-regen" onclick="triggerGenerateCombined()">🔄 Regénérer</button>
-        <button class="btn-view-history" onclick="switchCombinedTab('history')">📋 Voir mes combinés</button>
+        <button class="btn-view-history" onclick="switchCombinedTab('history')">📋 Mes combinés</button>
       </div>
     </div>
   `;
@@ -1018,3 +1020,64 @@ async function loadCombinedStats() {
     }
   } catch (_) {}
 }
+
+function copyCombinedTicket(combined) {
+  if (!combined) return;
+  const selections = combined.selections || [];
+  const lines = [
+    `🎯 TICKET COMBINÉ BETCLIC AI`,
+    `⚡ ${combined.name || 'Combiné IA'}`,
+    `🏆 Cote Totale : ${typeof combined.total_odds === 'number' ? combined.total_odds.toFixed(2) : combined.total_odds}`,
+    `💰 Mise : ${combinedState.stake || combined.stake || 10}€ ➔ Gain potentiel : ${combined.potential_gain?.toFixed(2) || ((combinedState.stake || 10) * combined.total_odds).toFixed(2)}€`,
+    `--------------------------------`,
+    ...selections.map((s, idx) => `${idx + 1}. ${s.home_team} vs ${s.away_team} : ${s.selection} (${s.market || '1N2'}) @ ${s.odds}`),
+    `--------------------------------`,
+    combined.rationale || combined.ai_rationale ? `🧠 Analyse IA : ${combined.rationale || combined.ai_rationale}` : ''
+  ].filter(Boolean);
+
+  const text = lines.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('📋 Ticket copié dans le presse-papier !', 'success');
+    }).catch(() => fallbackCopyText(text));
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+function fallbackCopyText(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 Ticket copié dans le presse-papier !', 'success');
+  } catch (_) {
+    showToast('Erreur copie presse-papier', 'error');
+  }
+  document.body.removeChild(textarea);
+}
+
+function saveCombinedToBankroll(combined) {
+  if (!combined) return;
+  const totalOdds = typeof combined.total_odds === 'number' ? parseFloat(combined.total_odds.toFixed(2)) : parseFloat(combined.total_odds);
+  const stake = combinedState.stake || combined.stake || 10;
+  const selections = Array.isArray(combined.selections) ? combined.selections : [];
+  const selSummary = selections.map(s => `${(s.home_team || '').split(' ')[0]} vs ${(s.away_team || '').split(' ')[0]}: ${s.selection} @${s.odds}`).join(' | ');
+
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title: combined.name || `Combiné IA (${selections.length} sélections)`,
+      selection: selSummary || 'Sélections combinées',
+      market: 'Combiné',
+      odds: totalOdds,
+      stake: stake,
+      bet_type: 'combined',
+      notes: combined.rationale || combined.ai_rationale || `Combiné ${combined.strategy_used || ''}`
+    });
+  } else {
+    showToast('Module bankroll en chargement...', 'info');
+  }
+}
+

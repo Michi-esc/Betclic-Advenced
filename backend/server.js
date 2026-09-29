@@ -7,6 +7,7 @@ const cron = require('node-cron');
 const db = require('./db');
 const { scrapeMatches } = require('./scraper');
 const { analyzeMatch, generateCombined, initAI } = require('./ai-research');
+const { sendValueBetAlert, sendCombinedAlert, testNotification } = require('./services/notification.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -228,6 +229,18 @@ app.post('/api/analyze/:matchId', async (req, res) => {
     }
 
     console.log(`✅ Analysis saved for match ${matchId}`);
+
+    // Trigger Value Bet notification if structured value bets were detected
+    if (analysis && analysis.raw_research) {
+      try {
+        const parsed = JSON.parse(analysis.raw_research);
+        if (Array.isArray(parsed.value_bets_structured) && parsed.value_bets_structured.length > 0) {
+          const topVb = parsed.value_bets_structured[0];
+          sendValueBetAlert(match, topVb).catch(err => console.warn('Value Bet notification error:', err.message));
+        }
+      } catch (_) {}
+    }
+
     res.json({ success: true, analysis, message: 'Analyse IA complète sauvegardée' });
   } catch (error) {
     console.error(`POST /api/analyze/${matchId} error:`, error);
@@ -387,6 +400,17 @@ app.post('/api/combineds/save', (req, res) => {
       ai_rationale: aiRationale || '',
       selections: JSON.stringify(selections || []),
     });
+    // Send alert notification for saved combined
+    sendCombinedAlert({
+      name: name || 'Mon Combiné',
+      strategy: strategy || 'custom',
+      total_odds: totalOdds || 1,
+      potential_gain: potentialGain || stake,
+      stake: stake || 10,
+      selections: JSON.stringify(selections || []),
+      ai_rationale: aiRationale || ''
+    }).catch(err => console.warn('Combined alert notification error:', err.message));
+
     res.json({ success: true, data: { id: saved.lastInsertRowid }, message: 'Combiné sauvegardé' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -400,6 +424,214 @@ app.delete('/api/combineds/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM combineds WHERE id = ?').run(req.params.id);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
+// BANKROLL & BET TRACKER
+// ============================================================
+
+app.get('/api/bankroll', (req, res) => {
+  try {
+    const settings = db.prepare('SELECT * FROM bankroll_settings WHERE id = 1').get() || {
+      initial_bankroll: 1000,
+      current_bankroll: 1000,
+      currency: '€',
+      kelly_fraction: 0.25
+    };
+
+    const bets = db.prepare('SELECT * FROM bets ORDER BY placed_at DESC, id DESC').all();
+
+    // Compute dynamic metrics
+    const totalBets = bets.length;
+    const pendingBets = bets.filter(b => b.status === 'pending');
+    const wonBets = bets.filter(b => b.status === 'won');
+    const lostBets = bets.filter(b => b.status === 'lost');
+    const voidBets = bets.filter(b => b.status === 'void');
+    const settledBets = bets.filter(b => b.status !== 'pending');
+
+    const totalStaked = settledBets.reduce((sum, b) => sum + (b.stake || 0), 0);
+    const pendingStaked = pendingBets.reduce((sum, b) => sum + (b.stake || 0), 0);
+    const totalProfit = settledBets.reduce((sum, b) => sum + (b.profit || 0), 0);
+
+    const winRate = (wonBets.length + lostBets.length) > 0 
+      ? Math.round((wonBets.length / (wonBets.length + lostBets.length)) * 100) 
+      : 0;
+
+    const roi = totalStaked > 0 ? Math.round((totalProfit / totalStaked) * 1000) / 10 : 0;
+    const calculatedBalance = Math.round((settings.initial_bankroll + totalProfit - pendingStaked) * 100) / 100;
+    const growth = settings.initial_bankroll > 0 
+      ? Math.round(((calculatedBalance - settings.initial_bankroll) / settings.initial_bankroll) * 1000) / 10 
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        settings: {
+          ...settings,
+          current_bankroll: calculatedBalance
+        },
+        stats: {
+          initial_bankroll: settings.initial_bankroll,
+          current_bankroll: calculatedBalance,
+          currency: settings.currency || '€',
+          total_bets: totalBets,
+          pending_count: pendingBets.length,
+          won_count: wonBets.length,
+          lost_count: lostBets.length,
+          void_count: voidBets.length,
+          win_rate: winRate,
+          total_staked: Math.round(totalStaked * 100) / 100,
+          pending_staked: Math.round(pendingStaked * 100) / 100,
+          total_profit: Math.round(totalProfit * 100) / 100,
+          roi: roi,
+          growth: growth
+        },
+        bets
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/bankroll/bet', (req, res) => {
+  try {
+    const { bet_type, match_id, title, selection, market, odds, stake, notes } = req.body;
+    if (!title || !selection || !odds || !stake) {
+      return res.status(400).json({ success: false, error: 'Champs requis manquants (title, selection, odds, stake)' });
+    }
+
+    const numericOdds = parseFloat(odds);
+    const numericStake = parseFloat(stake);
+    const potentialPayout = Math.round(numericOdds * numericStake * 100) / 100;
+
+    const stmt = db.prepare(`
+      INSERT INTO bets (bet_type, match_id, title, selection, market, odds, stake, potential_payout, status, profit, notes, placed_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, datetime('now'))
+    `);
+
+    const result = stmt.run(
+      bet_type || 'single',
+      match_id || null,
+      title,
+      selection,
+      market || '1N2',
+      numericOdds,
+      numericStake,
+      potentialPayout,
+      notes || ''
+    );
+
+    res.json({
+      success: true,
+      data: { id: result.lastInsertRowid, potential_payout: potentialPayout },
+      message: 'Pari enregistré avec succès dans la Bankroll !'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.patch('/api/bankroll/bet/:id', (req, res) => {
+  try {
+    const { status } = req.body; // 'won', 'lost', 'void', 'pending'
+    if (!['won', 'lost', 'void', 'pending'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Statut invalide' });
+    }
+
+    const bet = db.prepare('SELECT * FROM bets WHERE id = ?').get(req.params.id);
+    if (!bet) return res.status(404).json({ success: false, error: 'Pari non trouvé' });
+
+    let profit = 0;
+    if (status === 'won') {
+      profit = Math.round((bet.potential_payout - bet.stake) * 100) / 100;
+    } else if (status === 'lost') {
+      profit = -bet.stake;
+    } else if (status === 'void' || status === 'pending') {
+      profit = 0;
+    }
+
+    const settledAt = status === 'pending' ? null : new Date().toISOString();
+
+    db.prepare(`
+      UPDATE bets SET status = ?, profit = ?, settled_at = ? WHERE id = ?
+    `).run(status, profit, settledAt, req.params.id);
+
+    res.json({ success: true, message: `Pari mis à jour : ${status.toUpperCase()}` });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/bankroll/bet/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM bets WHERE id = ?').run(req.params.id);
+    res.json({ success: true, message: 'Pari supprimé' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/bankroll/settings', (req, res) => {
+  try {
+    const {
+      initial_bankroll,
+      currency,
+      kelly_fraction,
+      telegram_bot_token,
+      telegram_chat_id,
+      discord_webhook_url,
+      notify_value_bets,
+      notify_combineds
+    } = req.body;
+
+    db.prepare(`
+      UPDATE bankroll_settings SET
+        initial_bankroll = COALESCE(?, initial_bankroll),
+        currency = COALESCE(?, currency),
+        kelly_fraction = COALESCE(?, kelly_fraction),
+        telegram_bot_token = COALESCE(?, telegram_bot_token),
+        telegram_chat_id = COALESCE(?, telegram_chat_id),
+        discord_webhook_url = COALESCE(?, discord_webhook_url),
+        notify_value_bets = COALESCE(?, notify_value_bets),
+        notify_combineds = COALESCE(?, notify_combineds),
+        updated_at = datetime('now')
+      WHERE id = 1
+    `).run(
+      initial_bankroll !== undefined && initial_bankroll !== '' ? parseFloat(initial_bankroll) : null,
+      currency || null,
+      kelly_fraction !== undefined && kelly_fraction !== '' ? parseFloat(kelly_fraction) : null,
+      telegram_bot_token !== undefined ? telegram_bot_token.trim() : null,
+      telegram_chat_id !== undefined ? telegram_chat_id.trim() : null,
+      discord_webhook_url !== undefined ? discord_webhook_url.trim() : null,
+      notify_value_bets !== undefined ? (notify_value_bets ? 1 : 0) : null,
+      notify_combineds !== undefined ? (notify_combineds ? 1 : 0) : null
+    );
+
+    res.json({ success: true, message: 'Paramètres mis à jour avec succès !' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/notifications/test', async (req, res) => {
+  try {
+    const { type, token, chatId, webhookUrl } = req.body;
+    const customConfig = (token || chatId || webhookUrl) ? {
+      telegramToken: token,
+      telegramChatId: chatId,
+      discordWebhook: webhookUrl,
+    } : null;
+
+    const result = await testNotification(type || 'telegram', customConfig);
+    if (result.success) {
+      res.json({ success: true, message: 'Notification de test envoyée avec succès !' });
+    } else {
+      res.status(400).json({ success: false, error: result.error || result.reason || 'Échec de l\'envoi' });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

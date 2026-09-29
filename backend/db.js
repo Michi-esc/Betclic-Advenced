@@ -88,6 +88,37 @@ db.exec(`
     updated_at TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS bets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bet_type TEXT NOT NULL DEFAULT 'single',
+    match_id INTEGER,
+    title TEXT NOT NULL,
+    selection TEXT NOT NULL,
+    market TEXT DEFAULT '1N2',
+    odds REAL NOT NULL,
+    stake REAL NOT NULL,
+    potential_payout REAL NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    profit REAL DEFAULT 0,
+    notes TEXT,
+    placed_at TEXT DEFAULT (datetime('now')),
+    settled_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS bankroll_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    initial_bankroll REAL DEFAULT 1000,
+    current_bankroll REAL DEFAULT 1000,
+    currency TEXT DEFAULT '€',
+    kelly_fraction REAL DEFAULT 0.25,
+    telegram_bot_token TEXT,
+    telegram_chat_id TEXT,
+    discord_webhook_url TEXT,
+    notify_value_bets INTEGER DEFAULT 1,
+    notify_combineds INTEGER DEFAULT 1,
+    updated_at TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS scrape_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     status TEXT,
@@ -95,6 +126,12 @@ db.exec(`
     error_message TEXT,
     scraped_at TEXT DEFAULT (datetime('now'))
   );
+`);
+
+// Initialize bankroll settings row if missing
+db.exec(`
+  INSERT OR IGNORE INTO bankroll_settings (id, initial_bankroll, current_bankroll, currency, kelly_fraction)
+  VALUES (1, 1000, 1000, '€', 0.25);
 `);
 
 // Add missing columns to match_analysis if upgrading existing DB
