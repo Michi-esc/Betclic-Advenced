@@ -24,6 +24,13 @@ let bankrollData = {
 };
 
 let activeBankrollFilter = 'all'; // 'all', 'pending', 'settled'
+let bankrollViewMode = localStorage.getItem('bankroll_view_mode') || 'table'; // 'table' or 'cards'
+
+function setBankrollView(mode) {
+  bankrollViewMode = mode;
+  localStorage.setItem('bankroll_view_mode', mode);
+  renderBankrollPage();
+}
 
 async function loadBankroll() {
   try {
@@ -111,6 +118,15 @@ function renderBankrollPage() {
           </button>
         </div>
 
+        <div class="bankroll-view-toggle">
+          <button class="b-view-btn ${bankrollViewMode === 'table' ? 'active' : ''}" onclick="setBankrollView('table')" title="Affichage tableau simple et structuré">
+            📊 Tableau Simple
+          </button>
+          <button class="b-view-btn ${bankrollViewMode === 'cards' ? 'active' : ''}" onclick="setBankrollView('cards')" title="Affichage en cartes détaillées">
+            🗂️ Vue Cartes
+          </button>
+        </div>
+
         <div class="bankroll-action-buttons">
           <button class="btn btn-auto-settle" onclick="triggerAutoSettle()" id="btn-auto-settle" title="Vérifier les scores des matchs et solder automatiquement vos paris">
             <span>⚡</span>
@@ -131,13 +147,110 @@ function renderBankrollPage() {
             <h3>Aucun pari enregistré</h3>
             <p>Cliquez sur "Nouveau Pari" ou utilisez le bouton "Miser" directement sur un match ou un combiné pour l'ajouter à votre bankroll.</p>
           </div>
-        ` : `
+        ` : bankrollViewMode === 'table' ? renderBetsTable(filteredBets, currency) : `
           <div class="bets-cards-grid">
             ${filteredBets.map(bet => renderBetItem(bet, currency)).join('')}
           </div>
         `}
       </div>
 
+    </div>
+  `;
+}
+
+function renderBetsTable(bets, currency) {
+  return `
+    <div class="bankroll-table-wrapper">
+      <table class="pro-bankroll-table">
+        <thead>
+          <tr>
+            <th>Date & Statut</th>
+            <th>Match / Événement</th>
+            <th>Pari à Jouer sur Betclic</th>
+            <th>Marché</th>
+            <th>Cote</th>
+            <th>Mise</th>
+            <th>Gain Pot. / Bénéfice Net</th>
+            <th>Actions Rapides</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bets.map(bet => {
+            const isPending = bet.status === 'pending';
+            const isWon = bet.status === 'won';
+            const isLost = bet.status === 'lost';
+            const isVoid = bet.status === 'void';
+
+            const statusBadge = isPending 
+              ? '<span class="bet-badge pending">⏳ En cours</span>'
+              : isWon
+              ? '<span class="bet-badge won">✅ Gagné</span>'
+              : isLost
+              ? '<span class="bet-badge lost">❌ Perdu</span>'
+              : '<span class="bet-badge void">⚪ Annulé</span>';
+
+            const dateFormatted = new Date(bet.placed_at || Date.now()).toLocaleDateString('fr-FR', {
+              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+
+            const cleanSel = formatBetSelectionLabel(bet.selection, bet.market);
+            const cleanMkt = cleanMarketLabel(bet.market);
+
+            let profitCell = '';
+            if (isPending) {
+              const potProfit = bet.potential_payout - bet.stake;
+              profitCell = `<span class="tbl-profit pending" title="Gain potentiel si gagné">+${formatMoney(potProfit, currency)}</span>`;
+            } else if (isWon) {
+              profitCell = `<span class="tbl-profit won">+${formatMoney(bet.profit, currency)}</span>`;
+            } else if (isLost) {
+              profitCell = `<span class="tbl-profit lost">${formatMoney(bet.profit, currency)}</span>`;
+            } else {
+              profitCell = `<span class="tbl-profit void">0.00 ${currency}</span>`;
+            }
+
+            return `
+              <tr class="bankroll-row ${bet.status}">
+                <td class="tbl-date-status">
+                  <div class="tbl-status-wrap">${statusBadge}</div>
+                  <div class="tbl-date-sub">${dateFormatted}</div>
+                </td>
+                <td class="tbl-match-cell">
+                  <div class="tbl-match-title" title="${escapeHtml(bet.title)}">${escapeHtml(bet.title)}</div>
+                  <span class="tbl-type-pill ${bet.bet_type}">${bet.bet_type === 'combined' ? '⚡ Combiné' : '⚽ Simple'}</span>
+                  ${bet.notes ? `<div class="tbl-notes-snippet" title="${escapeHtml(bet.notes)}">💡 ${escapeHtml(bet.notes)}</div>` : ''}
+                </td>
+                <td class="tbl-sel-cell">
+                  <strong class="tbl-bet-name">${escapeHtml(cleanSel)}</strong>
+                </td>
+                <td class="tbl-market-cell">
+                  <span class="table-market-tag">${escapeHtml(cleanMkt)}</span>
+                </td>
+                <td class="tbl-odds-cell">
+                  <span class="table-odd-pill">${Number(bet.odds).toFixed(2)}</span>
+                </td>
+                <td class="tbl-stake-cell">
+                  <span class="tbl-stake-val">${formatMoney(bet.stake, currency)}</span>
+                </td>
+                <td class="tbl-result-cell">
+                  ${profitCell}
+                </td>
+                <td class="tbl-actions-cell">
+                  <div class="tbl-actions-btn-group">
+                    ${isPending ? `
+                      <button class="btn-tbl-action win" onclick="settleBet(${bet.id}, 'won')" title="Marquer comme gagné">✅</button>
+                      <button class="btn-tbl-action loss" onclick="settleBet(${bet.id}, 'lost')" title="Marquer comme perdu">❌</button>
+                      <button class="btn-tbl-action void" onclick="settleBet(${bet.id}, 'void')" title="Annulé / Remboursé">⚪</button>
+                    ` : `
+                      <button class="btn-tbl-action re-pending" onclick="settleBet(${bet.id}, 'pending')" title="Remettre en cours">↩️</button>
+                    `}
+                    <button class="btn-tbl-action delete" onclick="deleteBet(${bet.id})" title="Supprimer ce pari">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -168,6 +281,9 @@ function renderBetItem(bet, currency) {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   });
 
+  const cleanSel = formatBetSelectionLabel(bet.selection, bet.market);
+  const cleanMkt = cleanMarketLabel(bet.market);
+
   return `
     <div class="bet-card ${bet.status}">
       <div class="bet-card-header">
@@ -183,14 +299,14 @@ function renderBetItem(bet, currency) {
       <div class="bet-card-body">
         <div class="bet-selection-row">
           <span class="bet-sel-label">Sélection :</span>
-          <span class="bet-sel-value"><strong>${escapeHtml(bet.selection)}</strong></span>
-          ${bet.market ? `<span class="bet-market-pill">${escapeHtml(bet.market)}</span>` : ''}
+          <span class="bet-sel-value"><strong>${escapeHtml(cleanSel)}</strong></span>
+          ${cleanMkt ? `<span class="bet-market-pill">${escapeHtml(cleanMkt)}</span>` : ''}
         </div>
 
         <div class="bet-numbers-row">
           <div class="bet-num-col">
             <span class="num-lbl">Cote</span>
-            <span class="num-val odds-val">${bet.odds}</span>
+            <span class="num-val odds-val">${Number(bet.odds).toFixed(2)}</span>
           </div>
           <div class="bet-num-col">
             <span class="num-lbl">Mise</span>
@@ -280,11 +396,14 @@ function openAddBetModal(prefill = {}) {
     modal = createAddBetModal();
   }
 
+  const cleanSel = formatBetSelectionLabel(prefill.selection || '', prefill.market || '1N2');
+  const cleanMkt = cleanMarketLabel(prefill.market || '1N2');
+
   // Pre-fill fields if triggered from a match card or combined
   document.getElementById('ab-title').value = prefill.title || '';
-  document.getElementById('ab-selection').value = prefill.selection || '';
-  document.getElementById('ab-market').value = prefill.market || '1N2';
-  document.getElementById('ab-odds').value = prefill.odds || '';
+  document.getElementById('ab-selection').value = cleanSel || '';
+  document.getElementById('ab-market').value = cleanMkt || '1N2';
+  document.getElementById('ab-odds').value = prefill.odds ? Number(prefill.odds).toFixed(2) : '';
   document.getElementById('ab-stake').value = prefill.stake || '20';
   document.getElementById('ab-type').value = prefill.bet_type || 'single';
   document.getElementById('ab-match-id').value = prefill.match_id || '';

@@ -182,11 +182,14 @@ function renderMatchCard(match) {
         if (hasValueBet) {
           tags.push(`<span class="card-tag tag-value">💎 ${raw.value_bets_structured.length} Value Bet(s)</span>`);
         }
+        const cleanCardPred = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
+        const cardOdd = getOddForSelection(match.ai_prediction, '1N2', match);
+
         return `
           <div class="card-ai-preview">
             <div class="ai-preview-header">
-              <span class="ai-pill">✨ IA</span>
-              <span class="ai-pred-text">${escapeHtml(match.ai_prediction)}</span>
+              <span class="ai-pill">🎯 À JOUER</span>
+              <span class="ai-pred-text"><strong>${escapeHtml(cleanCardPred)}</strong> @ ${cardOdd.toFixed(2)}</span>
               <span class="ai-conf-badge">${match.ai_confidence || ''}</span>
             </div>
             ${match.ai_recommendation ? `<p class="ai-rec-text">${escapeHtml(match.ai_recommendation)}</p>` : ''}
@@ -241,13 +244,13 @@ function quickBetFromMatch(matchId, event, preferredPick = null) {
 
   // If a specific odd was tapped (1, N, 2)
   if (preferredPick) {
-    let sel = `Victoire ${match.home_team}`;
+    let sel = formatBetSelectionLabel('1', '1N2', match.home_team, match.away_team);
     let oddVal = match.odds_home || 1.85;
     if (preferredPick === 'N') {
       sel = 'Match Nul';
       oddVal = match.odds_draw || 3.20;
     } else if (preferredPick === '2') {
-      sel = `Victoire ${match.away_team}`;
+      sel = formatBetSelectionLabel('2', '1N2', match.home_team, match.away_team);
       oddVal = match.odds_away || 2.10;
     }
 
@@ -269,12 +272,13 @@ function quickBetFromMatch(matchId, event, preferredPick = null) {
   // If match has a value bet, prefill with value bet!
   if (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) {
     const vb = raw.value_bets_structured[0];
+    const cleanVbSel = formatBetSelectionLabel(vb.selection, vb.market, match.home_team, match.away_team);
     if (typeof openAddBetModal === 'function') {
       openAddBetModal({
         title: `${match.home_team} vs ${match.away_team}`,
-        selection: vb.selection,
-        market: vb.market || 'Value Bet',
-        odds: vb.bookmaker_odds || match.odds_home || 1.85,
+        selection: cleanVbSel,
+        market: cleanMarketLabel(vb.market || 'Value Bet'),
+        odds: Number(vb.bookmaker_odds) || match.odds_home || 1.85,
         stake: 25,
         bet_type: 'single',
         match_id: match.id,
@@ -285,12 +289,15 @@ function quickBetFromMatch(matchId, event, preferredPick = null) {
   }
 
   // Otherwise prefill with AI prediction or home win
+  const cleanPred = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
+  const correctOdd = getOddForSelection(match.ai_prediction, '1N2', match);
+
   if (typeof openAddBetModal === 'function') {
     openAddBetModal({
       title: `${match.home_team} vs ${match.away_team}`,
-      selection: match.ai_prediction || `Victoire ${match.home_team}`,
+      selection: cleanPred,
       market: '1N2',
-      odds: match.odds_home || 1.85,
+      odds: correctOdd,
       stake: 20,
       bet_type: 'single',
       match_id: match.id,

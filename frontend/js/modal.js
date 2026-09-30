@@ -44,8 +44,19 @@ function showAnalysisData(match) {
   let raw = {};
   try { raw = JSON.parse(match.raw_research || '{}'); } catch (_) {}
 
+  // ── TABLEAU SYNTHÉTIQUE DES PARIS À PLACER ──
+  const existingSummary = document.getElementById('modal-bet-summary-table');
+  if (existingSummary) existingSummary.remove();
+
+  const summaryCard = renderBetSummaryTableCard(match, raw);
+  const cardPrediction = document.getElementById('card-prediction');
+  if (cardPrediction) {
+    cardPrediction.before(summaryCard);
+  }
+
   // Prediction card with risk alert
-  document.getElementById('modal-prediction').textContent = match.ai_prediction || '—';
+  const cleanPred = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
+  document.getElementById('modal-prediction').textContent = cleanPred || '—';
   document.getElementById('modal-confidence').textContent = match.ai_confidence || '—';
 
   // Build recommendation + result risk alert
@@ -385,42 +396,210 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModal({ target: document.getElementById('modal-overlay') });
 });
 
+function renderBetSummaryTableCard(match, raw) {
+  const card = document.createElement('div');
+  card.id = 'modal-bet-summary-table';
+  card.className = 'analysis-card full-width bet-summary-table-card';
+
+  const rows = [];
+
+  // 1. Pari Principal (1N2)
+  if (match.ai_prediction && match.ai_prediction !== '—') {
+    const cleanPred = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
+    const odd = getOddForSelection(match.ai_prediction, '1N2', match);
+    let confBadge = `<span class="conf-pill pill-high">🟢 ${escapeHtml(match.ai_confidence || '70%')}</span>`;
+    if (raw.result_avoid) {
+      confBadge = `<span class="conf-pill pill-danger">🚫 Déconseillé</span>`;
+    } else if (raw.result_risk_level === 'élevé') {
+      confBadge = `<span class="conf-pill pill-medium">🟡 Risqué (${escapeHtml(match.ai_confidence || '60%')})</span>`;
+    }
+
+    rows.push({
+      role: '🔥 Pari Principal',
+      roleClass: 'role-main',
+      selection: cleanPred,
+      market: 'Résultat (1N2)',
+      odds: odd,
+      confBadge: confBadge,
+      actionPayload: { selection: cleanPred, market: '1N2', odds: odd, notes: match.ai_recommendation || 'Pari Principal IA' }
+    });
+  }
+
+  // 2. Option Sécurisée (Double Chance)
+  if (match.double_chance_prediction && match.double_chance_prediction !== '—') {
+    const cleanDc = formatBetSelectionLabel(match.double_chance_prediction, 'Double Chance', match.home_team, match.away_team);
+    const oddDc = getOddForSelection(match.double_chance_prediction, 'Double Chance', match);
+    rows.push({
+      role: '🛡️ Option Sécurité',
+      roleClass: 'role-secure',
+      selection: cleanDc,
+      market: 'Double Chance',
+      odds: oddDc,
+      confBadge: `<span class="conf-pill pill-secure">🛡️ Sécurisé</span>`,
+      actionPayload: { selection: cleanDc, market: 'Double Chance', odds: oddDc, notes: 'Option Sécurisée Double Chance' }
+    });
+  }
+
+  // 3. Total de Buts
+  if (match.over25_prediction && match.over25_prediction !== '—') {
+    const cleanOver = formatBetSelectionLabel(match.over25_prediction, 'Over/Under', match.home_team, match.away_team);
+    let confBadge = `<span class="conf-pill pill-high">🟢 ${escapeHtml(match.over25_confidence || 'Fiable')}</span>`;
+    if (raw.over25_avoid) {
+      confBadge = `<span class="conf-pill pill-danger">🚫 Déconseillé</span>`;
+    }
+    const oddGoals = raw.over25_odds || 1.80;
+    rows.push({
+      role: '⚽ Total Buts',
+      roleClass: 'role-goals',
+      selection: cleanOver,
+      market: 'Total Buts (+/- 2.5)',
+      odds: oddGoals,
+      confBadge: confBadge,
+      actionPayload: { selection: cleanOver, market: 'Total Buts (+/- 2.5)', odds: oddGoals, notes: raw.over25_rationale || 'Total Buts IA' }
+    });
+  }
+
+  // 4. Les 2 Équipes Marquent (BTTS)
+  if (match.btts_prediction && match.btts_prediction !== '—') {
+    const cleanBtts = formatBetSelectionLabel(match.btts_prediction, 'BTTS', match.home_team, match.away_team);
+    let confBadge = `<span class="conf-pill pill-high">🟢 ${escapeHtml(match.btts_confidence || 'Fiable')}</span>`;
+    if (raw.btts_avoid) {
+      confBadge = `<span class="conf-pill pill-danger">🚫 Déconseillé</span>`;
+    }
+    const oddBtts = raw.btts_odds || 1.75;
+    rows.push({
+      role: '🤝 Les 2 Marquent',
+      roleClass: 'role-btts',
+      selection: cleanBtts,
+      market: 'Les 2 Équipes Marquent',
+      odds: oddBtts,
+      confBadge: confBadge,
+      actionPayload: { selection: cleanBtts, market: 'Les deux équipes marquent', odds: oddBtts, notes: raw.btts_rationale || 'BTTS IA' }
+    });
+  }
+
+  // 5. Value Bets détectés
+  if (Array.isArray(raw.value_bets_structured)) {
+    raw.value_bets_structured.forEach(vb => {
+      const cleanVbSel = formatBetSelectionLabel(vb.selection, vb.market, match.home_team, match.away_team);
+      const mktLabel = cleanMarketLabel(vb.market);
+      rows.push({
+        role: `💎 Value Bet (+${vb.value_edge})`,
+        roleClass: 'role-value',
+        selection: cleanVbSel,
+        market: mktLabel,
+        odds: vb.bookmaker_odds || 2.00,
+        confBadge: `<span class="conf-pill pill-value">💎 Edge ${escapeHtml(vb.value_edge)}</span>`,
+        actionPayload: { selection: cleanVbSel, market: mktLabel, odds: vb.bookmaker_odds, notes: `Value Bet Edge ${vb.value_edge} — ${vb.rationale || ''}` }
+      });
+    });
+  }
+
+  card.innerHTML = `
+    <div class="card-header bet-table-header">
+      <div class="header-left-title">
+        <span class="card-icon">📋</span>
+        <h3>Quels paris placer sur Betclic ? — Tableau Synthétique</h3>
+      </div>
+      <span class="badge-clarity">✨ Synthèse Simple</span>
+    </div>
+    <p class="bet-table-sub">
+      Tableau clair et sans jargon : repérez directement quoi jouer sur votre application Betclic avec le niveau de fiabilité associé.
+    </p>
+
+    <div class="table-responsive">
+      <table class="pro-bet-table">
+        <thead>
+          <tr>
+            <th>Rôle du Pari</th>
+            <th>Intitulé exact sur Betclic</th>
+            <th>Marché</th>
+            <th>Cote</th>
+            <th>Fiabilité / Risque</th>
+            <th>Action 1-Clic</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td><span class="role-badge ${r.roleClass}">${r.role}</span></td>
+              <td class="table-sel-cell"><span class="bet-exact-name">${escapeHtml(r.selection)}</span></td>
+              <td class="table-market-cell"><span class="table-market-tag">${escapeHtml(r.market)}</span></td>
+              <td><span class="table-odd-pill">${Number(r.odds).toFixed(2)}</span></td>
+              <td>${r.confBadge}</td>
+              <td>
+                <button class="btn-table-bet" onclick="quickBetFromModal(${match.id}, 'row', ${escapeHtml(JSON.stringify(JSON.stringify(r.actionPayload)))})" title="Ajouter directement ce pari à ma Bankroll">
+                  <span>💰</span> <span>Miser</span>
+                </button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  return card;
+}
+
 function quickBetFromModal(matchId, type, customData) {
   const match = allMatches.find(m => m.id === matchId);
   if (!match) return;
+
+  if (typeof openAddBetModal !== 'function') return;
+
+  // Direct table row action
+  if (type === 'row' && customData) {
+    let betInfo = customData;
+    if (typeof customData === 'string') {
+      try { betInfo = JSON.parse(customData); } catch (_) {}
+    }
+    openAddBetModal({
+      title: `${match.home_team} vs ${match.away_team}`,
+      selection: betInfo.selection,
+      market: betInfo.market || '1N2',
+      odds: Number(betInfo.odds) || 1.85,
+      stake: betInfo.stake || 20,
+      bet_type: 'single',
+      match_id: match.id,
+      notes: betInfo.notes || `Conseil IA (${betInfo.role || 'Pari'})`
+    });
+    return;
+  }
 
   if (type === 'value' && customData) {
     let vb = customData;
     if (typeof customData === 'string') {
       try { vb = JSON.parse(customData); } catch (_) {}
     }
-    if (typeof openAddBetModal === 'function') {
-      openAddBetModal({
-        title: `${match.home_team} vs ${match.away_team}`,
-        selection: vb.selection,
-        market: vb.market || 'Value Bet',
-        odds: vb.bookmaker_odds || match.odds_home || 1.85,
-        stake: 25,
-        bet_type: 'single',
-        match_id: match.id,
-        notes: `Value Bet Edge ${vb.value_edge} — ${vb.rationale || ''}`
-      });
-    }
+    const cleanSel = formatBetSelectionLabel(vb.selection, vb.market, match.home_team, match.away_team);
+    openAddBetModal({
+      title: `${match.home_team} vs ${match.away_team}`,
+      selection: cleanSel,
+      market: cleanMarketLabel(vb.market || 'Value Bet'),
+      odds: Number(vb.bookmaker_odds) || match.odds_home || 1.85,
+      stake: 25,
+      bet_type: 'single',
+      match_id: match.id,
+      notes: `Value Bet Edge ${vb.value_edge} — ${vb.rationale || ''}`
+    });
     return;
   }
 
   // Type prediction
-  if (typeof openAddBetModal === 'function') {
-    openAddBetModal({
-      title: `${match.home_team} vs ${match.away_team}`,
-      selection: match.ai_prediction || `Victoire ${match.home_team}`,
-      market: '1N2',
-      odds: match.odds_home || 1.85,
-      stake: 20,
-      bet_type: 'single',
-      match_id: match.id,
-      notes: match.ai_recommendation || ''
-    });
-  }
+  const cleanSel = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
+  const correctOdd = getOddForSelection(match.ai_prediction, '1N2', match);
+
+  openAddBetModal({
+    title: `${match.home_team} vs ${match.away_team}`,
+    selection: cleanSel,
+    market: '1N2',
+    odds: correctOdd,
+    stake: 20,
+    bet_type: 'single',
+    match_id: match.id,
+    notes: match.ai_recommendation || ''
+  });
 }
+
 
