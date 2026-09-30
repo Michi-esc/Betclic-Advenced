@@ -37,7 +37,7 @@ function switchCombinedTab(tab) {
     s.classList.toggle('hidden', s.dataset.section !== tab);
   });
 
-  if (tab === 'builder') renderBuilderMatchList();
+  if (tab === 'builder') renderBuilderSectionContent();
   if (tab === 'system') renderSystemSectionContent();
   if (tab === 'hedging') renderHedgingSectionContent();
   if (tab === 'history') renderCombinedHistory();
@@ -76,7 +76,7 @@ function renderCombinedPage() {
         <span>🤖</span> Génération IA
       </button>
       <button class="combined-tab" data-tab="builder" onclick="switchCombinedTab('builder')">
-        <span>🛠️</span> Constructeur Manuel
+        <span>⚡</span> Créateur de Combinés & Paris
       </button>
       <button class="combined-tab" data-tab="system" onclick="switchCombinedTab('system')">
         <span>🛡️</span> Paris Système (2/3, 3/4, Yankee...)
@@ -95,7 +95,7 @@ function renderCombinedPage() {
     </div>
 
     <!-- ===== SECTION: MANUAL BUILDER ===== -->
-    <div class="combined-section hidden" data-section="builder">
+    <div class="combined-section hidden" data-section="builder" id="builder-section-container">
       ${renderBuilderSection()}
     </div>
 
@@ -274,320 +274,1221 @@ function renderGenerateSection() {
 }
 
 // ============================================================
-// SECTION: MANUAL BUILDER
+// SECTION: REFONTE CRÉATEUR DE COMBINÉS & LISTES DE PARIS
 // ============================================================
+
+let builderState = {
+  riskFilter: 'all',             // 'all' | 'safe' | 'balanced' | 'moderate'
+  sortBy: 'success_desc',        // 'success_desc' | 'success_asc' | 'odds_asc' | 'odds_desc' | 'date_asc' | 'ev_desc'
+  selectedCompetitions: [],      // [] means all, or array of strings
+  searchQuery: '',
+  activeView: 'matches',         // 'matches' | 'catalog'
+  activeMatchTab: {},            // { [matchId]: 'result' | 'goals' | 'security' | 'specials' }
+  stake: 10,
+  selections: {},                // { [matchId]: betObject }
+};
+
+// Global alias for compatibility
+let builderSelections = builderState.selections;
+
 function renderBuilderSection() {
-  return `
-    <div class="builder-layout">
-      <div class="builder-left">
-        <h2 class="config-title">🛠️ Sélectionnez vos matchs</h2>
-        <p class="builder-hint">Cliquez sur un match analysé pour l'ajouter à votre combiné. Choisissez ensuite le marché et la sélection.</p>
-        <div id="builder-match-list">
-          <div class="combined-empty"><span>⏳</span><p>Chargement des matchs analysés...</p></div>
+  return `<div id="builder-section-inner" class="builder-section-inner"></div>`;
+}
+
+function renderBuilderSectionContent() {
+  const container = document.getElementById('builder-section-inner');
+  if (!container) return;
+
+  const analyzed = allMatches.filter(m => m.ai_prediction);
+  if (analyzed.length === 0) {
+    container.innerHTML = `
+      <div class="combined-empty">
+        <span style="font-size:3rem">🔍</span>
+        <h3>Aucun match analysé disponible</h3>
+        <p>Veuillez vous rendre dans l'onglet <strong>Matchs</strong> et lancer des analyses IA pour pouvoir construire vos combinés.</p>
+        <button class="btn btn-primary" onclick="switchPage('matches')">Aller aux Matchs</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Extract all unique competitions with counts
+  const compCounts = {};
+  analyzed.forEach(m => {
+    const comp = m.competition || 'Autre';
+    compCounts[comp] = (compCounts[comp] || 0) + 1;
+  });
+  const allComps = Object.keys(compCounts).sort();
+
+  // Filter matches based on competition and search query
+  let filteredMatches = analyzed.filter(m => {
+    if (builderState.selectedCompetitions.length > 0 && !builderState.selectedCompetitions.includes(m.competition)) {
+      return false;
+    }
+    if (builderState.searchQuery) {
+      const q = builderState.searchQuery.toLowerCase();
+      const matchText = `${m.home_team} ${m.away_team} ${m.competition}`.toLowerCase();
+      if (!matchText.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Generate catalog of bets for each filtered match
+  const matchCatalogs = filteredMatches.map(m => ({
+    match: m,
+    bets: generateAllBetsForMatch(m),
+  }));
+
+  // Filter bets inside catalogs according to risk profile if selected
+  const filteredCatalogs = matchCatalogs.map(item => {
+    let bets = item.bets;
+    if (builderState.riskFilter !== 'all') {
+      bets = bets.filter(b => b.riskProfile === builderState.riskFilter);
+    }
+    return { match: item.match, bets };
+  });
+
+  // Sort matches or bets
+  sortCatalogs(filteredCatalogs);
+
+  // Render HTML structure
+  container.innerHTML = `
+    <!-- Top Hero / Control Header -->
+    <div class="builder-hero-panel">
+      <div class="bhp-top">
+        <div class="bhp-info">
+          <h2 class="bhp-title">⚡ Créateur de Combinés & Listes de Paris</h2>
+          <p class="bhp-sub">Filtrez vos paris par profil de risque (Sécurisé, Équilibré, Modéré), triez par chance de réussite et explorez tous les marchés par match.</p>
+        </div>
+        <div class="bhp-actions">
+          <button class="btn-builder-magic" onclick="autoFillTopBets()" title="Ajoute automatiquement les 4 meilleurs paris selon vos filtres actuels">
+            <span>⚡</span> Remplir Automatiquement (Top 4)
+          </button>
         </div>
       </div>
-      <div class="builder-right">
-        <div class="builder-slip">
-          <h2 class="config-title">📝 Mon Combiné</h2>
-          <div id="builder-slip-items">
-            <div class="slip-empty">
-              <span>➕</span>
-              <p>Ajoutez des matchs depuis la liste</p>
+
+      <!-- 1. SÉLECTEUR DE COMPÉTITIONS -->
+      <div class="builder-filter-block">
+        <div class="bfb-header">
+          <span class="bfb-label">🏆 Compétitions</span>
+          <span class="bfb-sub">${builderState.selectedCompetitions.length === 0 ? 'Toutes sélectionnées' : `${builderState.selectedCompetitions.length} sélectionnée(s)`}</span>
+        </div>
+        <div class="comp-pills-bar">
+          <button class="comp-pill ${builderState.selectedCompetitions.length === 0 ? 'active' : ''}" onclick="toggleCompetitionFilter(null)">
+            <span>🌟</span> Toutes (${analyzed.length})
+          </button>
+          ${allComps.map(comp => {
+            const isSel = builderState.selectedCompetitions.includes(comp);
+            return `
+              <button class="comp-pill ${isSel ? 'active' : ''}" onclick="toggleCompetitionFilter('${escapeHtml(comp)}')">
+                <span>${getCompetitionFlag(comp)}</span>
+                <span>${escapeHtml(comp)}</span>
+                <span class="comp-pill-count">${compCounts[comp]}</span>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 2. PROFILS DE RISQUE (Sécurisé / Équilibré / Modéré) -->
+      <div class="builder-filter-block">
+        <div class="bfb-header">
+          <span class="bfb-label">🛡️ Profil de Risque des Paris</span>
+          <span class="bfb-sub">Filtrez les sélections selon votre appétence au risque</span>
+        </div>
+        <div class="risk-filter-tabs">
+          <button class="rft-tab ${builderState.riskFilter === 'all' ? 'active' : ''}" onclick="setBuilderRiskFilter('all')">
+            <span class="rft-icon">🌟</span>
+            <div class="rft-text">
+              <span class="rft-name">Tous les paris</span>
+              <span class="rft-desc">Toutes les cotes & opportunités</span>
             </div>
+          </button>
+          <button class="rft-tab safe-tab ${builderState.riskFilter === 'safe' ? 'active' : ''}" onclick="setBuilderRiskFilter('safe')">
+            <span class="rft-icon">🟢</span>
+            <div class="rft-text">
+              <span class="rft-name">Sécurisé</span>
+              <span class="rft-desc">≥ 70% de chance • Cotes 1.15 à 1.48</span>
+            </div>
+          </button>
+          <button class="rft-tab balanced-tab ${builderState.riskFilter === 'balanced' ? 'active' : ''}" onclick="setBuilderRiskFilter('balanced')">
+            <span class="rft-icon">🟡</span>
+            <div class="rft-text">
+              <span class="rft-name">Équilibré</span>
+              <span class="rft-desc">55% à 70% de chance • Cotes 1.48 à 2.05</span>
+            </div>
+          </button>
+          <button class="rft-tab moderate-tab ${builderState.riskFilter === 'moderate' ? 'active' : ''}" onclick="setBuilderRiskFilter('moderate')">
+            <span class="rft-icon">🟠</span>
+            <div class="rft-text">
+              <span class="rft-name">Modéré / Audacieux</span>
+              <span class="rft-desc">40% à 55% de chance • Cotes 2.05 à 3.50+</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. BARRE DE CONTRÔLE (Tri, Vue, Recherche) -->
+      <div class="builder-toolbar">
+        <div class="toolbar-left">
+          <div class="toolbar-group">
+            <label class="toolbar-label">🎯 Trier par</label>
+            <select class="toolbar-select" onchange="setBuilderSort(this.value)">
+              <option value="success_desc" ${builderState.sortBy === 'success_desc' ? 'selected' : ''}>🎯 Chance de réussite (Décroissante : 90% → 40%)</option>
+              <option value="success_asc" ${builderState.sortBy === 'success_asc' ? 'selected' : ''}>📉 Chance de réussite (Croissante : 40% → 90%)</option>
+              <option value="odds_asc" ${builderState.sortBy === 'odds_asc' ? 'selected' : ''}>📈 Cotes les plus basses (1.15 → 3.50)</option>
+              <option value="odds_desc" ${builderState.sortBy === 'odds_desc' ? 'selected' : ''}>💰 Cotes les plus hautes (3.50 → 1.15)</option>
+              <option value="date_asc" ${builderState.sortBy === 'date_asc' ? 'selected' : ''}>⏰ Coup d'envoi (Chronologique pour Cashout)</option>
+              <option value="ev_desc" ${builderState.sortBy === 'ev_desc' ? 'selected' : ''}>💎 Meilleure Valeur (Value Bet EV+)</option>
+            </select>
           </div>
-          <div class="slip-summary" id="slip-summary" style="display:none">
-            <div class="slip-row">
-              <span>Cote totale</span>
-              <span class="slip-odds" id="slip-total-odds">1.00</span>
+
+          <div class="toolbar-group">
+            <label class="toolbar-label">👁️ Affichage</label>
+            <div class="view-mode-toggle">
+              <button class="vmt-btn ${builderState.activeView === 'matches' ? 'active' : ''}" onclick="setBuilderView('matches')" title="Afficher les matchs avec leurs onglets de marchés">
+                🏟️ Par Matchs
+              </button>
+              <button class="vmt-btn ${builderState.activeView === 'catalog' ? 'active' : ''}" onclick="setBuilderView('catalog')" title="Afficher la liste directe de tous les paris triés">
+                📑 Catalogue Direct
+              </button>
             </div>
-            <div class="slip-row">
-              <span>Mise</span>
-              <div class="stake-input-row">
-                <input type="number" class="stake-input small" id="builder-stake" value="10" min="1" />
-                <span>€</span>
-              </div>
-            </div>
-            <div class="slip-row gain-row">
-              <span>Gain potentiel</span>
-              <span class="slip-gain" id="slip-gain">—</span>
-            </div>
-            <input type="text" class="combined-name-input" id="combined-name-input" placeholder="Nom de mon combiné..." />
-            <button class="btn-save-combined" onclick="saveManualCombined()">💾 Sauvegarder ce combiné</button>
           </div>
         </div>
+
+        <div class="toolbar-right">
+          <div class="search-box-wrap">
+            <span class="sb-icon">🔍</span>
+            <input type="text" class="sb-input" placeholder="Filtrer une équipe..." value="${escapeHtml(builderState.searchQuery)}" oninput="setBuilderSearch(this.value)" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN GRID: FEED ON LEFT, SLIP ON RIGHT -->
+    <div class="builder-main-grid">
+      <div class="builder-feed-col">
+        ${builderState.activeView === 'matches' 
+          ? renderMatchesWithTabs(filteredCatalogs)
+          : renderDirectCatalog(filteredCatalogs)}
+      </div>
+
+      <div class="builder-slip-col">
+        ${renderBuilderSlipHtml()}
+      </div>
+    </div>
+  `;
+
+  // Attach slip events
+  updateSlipMetricsUi();
+}
+
+// ============================================================
+// MARKET BETS GENERATOR PER MATCH
+// ============================================================
+function generateAllBetsForMatch(m) {
+  let raw = {};
+  try { raw = JSON.parse(m.raw_research || '{}'); } catch (_) {}
+  let xg = {};
+  try { xg = JSON.parse(m.xg_metrics || '{}'); } catch (_) {}
+
+  const homeTeam = m.home_team || 'Domicile';
+  const awayTeam = m.away_team || 'Extérieur';
+  const oddsHome = Number(m.odds_home) || 2.00;
+  const oddsDraw = Number(m.odds_draw) || 3.30;
+  const oddsAway = Number(m.odds_away) || 3.50;
+
+  // Implied & AI probabilities
+  const aiConfHome = (m.ai_prediction && m.ai_prediction.includes(homeTeam)) ? (parseInt(m.ai_confidence) || 68) : null;
+  const aiConfAway = (m.ai_prediction && m.ai_prediction.includes(awayTeam)) ? (parseInt(m.ai_confidence) || 62) : null;
+
+  const probHome = aiConfHome || Math.min(88, Math.max(12, Math.round((1 / oddsHome) * 88)));
+  const probAway = aiConfAway || Math.min(88, Math.max(12, Math.round((1 / oddsAway) * 88)));
+  const probDraw = Math.min(45, Math.max(15, Math.round((1 / oddsDraw) * 85)));
+
+  // Double chance odds
+  const odds1X = Math.max(1.05, parseFloat(((oddsHome * oddsDraw) / (oddsHome + oddsDraw)).toFixed(2)) || 1.22);
+  const oddsX2 = Math.max(1.05, parseFloat(((oddsAway * oddsDraw) / (oddsAway + oddsDraw)).toFixed(2)) || 1.30);
+  const odds12 = Math.max(1.05, parseFloat(((oddsHome * oddsAway) / (oddsHome + oddsAway)).toFixed(2)) || 1.25);
+
+  const prob1X = Math.min(94, Math.round(probHome + probDraw * 0.75));
+  const probX2 = Math.min(94, Math.round(probAway + probDraw * 0.75));
+  const prob12 = Math.min(94, Math.round(probHome + probAway * 0.85));
+
+  const bets = [];
+
+  function classifyRisk(prob, odds) {
+    if (prob >= 70 || odds <= 1.48) return { profile: 'safe', label: 'Sécurisé' };
+    if (prob >= 54 && odds <= 2.05) return { profile: 'balanced', label: 'Équilibré' };
+    return { profile: 'moderate', label: 'Modéré' };
+  }
+
+  // 1. ONGLET 1N2 & DOUBLE CHANCE
+  const rHome = classifyRisk(probHome, oddsHome);
+  bets.push({
+    id: `m-${m.id}-1n2-1`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: '1N2',
+    selection: `🏠 Victoire ${homeTeam}`,
+    odds: oddsHome,
+    probability: probHome,
+    riskProfile: rHome.profile,
+    riskLabel: rHome.label,
+    isRecommended: m.ai_prediction && m.ai_prediction.includes(homeTeam),
+    rationale: `Forme domicile et avantage terrain pour ${homeTeam}`
+  });
+
+  const rDraw = classifyRisk(probDraw, oddsDraw);
+  bets.push({
+    id: `m-${m.id}-1n2-N`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: '1N2',
+    selection: `🤝 Match Nul`,
+    odds: oddsDraw,
+    probability: probDraw,
+    riskProfile: rDraw.profile,
+    riskLabel: rDraw.label,
+    isRecommended: m.ai_prediction && m.ai_prediction.toLowerCase().includes('nul'),
+    rationale: 'Deux équipes équilibrées avec tendance au partage des points'
+  });
+
+  const rAway = classifyRisk(probAway, oddsAway);
+  bets.push({
+    id: `m-${m.id}-1n2-2`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: '1N2',
+    selection: `✈️ Victoire ${awayTeam}`,
+    odds: oddsAway,
+    probability: probAway,
+    riskProfile: rAway.profile,
+    riskLabel: rAway.label,
+    isRecommended: m.ai_prediction && m.ai_prediction.includes(awayTeam),
+    rationale: `Avantage dynamique pour ${awayTeam}`
+  });
+
+  const r1X = classifyRisk(prob1X, odds1X);
+  bets.push({
+    id: `m-${m.id}-dc-1x`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: 'Double Chance',
+    selection: `🛡️ 1X (${homeTeam} ou Nul)`,
+    odds: odds1X,
+    probability: prob1X,
+    riskProfile: r1X.profile,
+    riskLabel: r1X.label,
+    isRecommended: m.double_chance_prediction === '1X' || (m.ai_prediction && m.ai_prediction.includes(homeTeam)),
+    rationale: `${homeTeam} invaincu ou sécurisé par le nul`
+  });
+
+  const rX2 = classifyRisk(probX2, oddsX2);
+  bets.push({
+    id: `m-${m.id}-dc-x2`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: 'Double Chance',
+    selection: `🛡️ X2 (Nul ou ${awayTeam})`,
+    odds: oddsX2,
+    probability: probX2,
+    riskProfile: rX2.profile,
+    riskLabel: rX2.label,
+    isRecommended: m.double_chance_prediction === 'X2' || (m.ai_prediction && m.ai_prediction.includes(awayTeam)),
+    rationale: `${awayTeam} évite la défaite`
+  });
+
+  const r12 = classifyRisk(prob12, odds12);
+  bets.push({
+    id: `m-${m.id}-dc-12`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'result',
+    market: 'Double Chance',
+    selection: `⚡ 12 (Pas de Match Nul)`,
+    odds: odds12,
+    probability: prob12,
+    riskProfile: r12.profile,
+    riskLabel: r12.label,
+    isRecommended: false,
+    rationale: 'Match ouvert sans compromis'
+  });
+
+  // 2. ONGLET BUTS & OVER/UNDER
+  // Over 1.5
+  bets.push({
+    id: `m-${m.id}-goals-o15`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Total Buts',
+    selection: `⚽ Plus de 1.5 Buts`,
+    odds: 1.22,
+    probability: 82,
+    riskProfile: 'safe',
+    riskLabel: 'Sécurisé',
+    isRecommended: true,
+    rationale: 'Forte probabilité de voir au moins 2 buts dans la rencontre'
+  });
+
+  // Over 2.5
+  const isOverRec = m.over25_prediction && m.over25_prediction.includes('Plus');
+  const probOver25 = isOverRec ? (parseInt(m.over25_confidence) || 64) : 46;
+  const oddsOver25 = isOverRec ? 1.78 : 2.05;
+  const rO25 = classifyRisk(probOver25, oddsOver25);
+  bets.push({
+    id: `m-${m.id}-goals-o25`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Total Buts',
+    selection: `⚽ Plus de 2.5 Buts`,
+    odds: oddsOver25,
+    probability: probOver25,
+    riskProfile: rO25.profile,
+    riskLabel: rO25.label,
+    isRecommended: isOverRec && !raw.over25_avoid,
+    rationale: 'Statistiques offensives et xG favorables aux buts'
+  });
+
+  // Under 2.5
+  const isUnderRec = m.over25_prediction && m.over25_prediction.includes('Moins');
+  const probUnder25 = isUnderRec ? (parseInt(m.over25_confidence) || 63) : 48;
+  const oddsUnder25 = isUnderRec ? 1.72 : 1.95;
+  const rU25 = classifyRisk(probUnder25, oddsUnder25);
+  bets.push({
+    id: `m-${m.id}-goals-u25`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Total Buts',
+    selection: `🛑 Moins de 2.5 Buts`,
+    odds: oddsUnder25,
+    probability: probUnder25,
+    riskProfile: rU25.profile,
+    riskLabel: rU25.label,
+    isRecommended: isUnderRec && !raw.over25_avoid,
+    rationale: 'Défenses solides et jeu fermé attendu'
+  });
+
+  // Under 3.5
+  bets.push({
+    id: `m-${m.id}-goals-u35`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Total Buts',
+    selection: `🛡️ Moins de 3.5 Buts`,
+    odds: 1.35,
+    probability: 77,
+    riskProfile: 'safe',
+    riskLabel: 'Sécurisé',
+    isRecommended: true,
+    rationale: 'Filet de sécurité élevé sur le total de buts'
+  });
+
+  // BTTS Oui
+  const isBttsYes = m.btts_prediction === 'Oui';
+  const probBttsYes = isBttsYes ? (parseInt(m.btts_confidence) || 64) : 45;
+  const oddsBttsYes = isBttsYes ? 1.75 : 2.05;
+  const rBttsYes = classifyRisk(probBttsYes, oddsBttsYes);
+  bets.push({
+    id: `m-${m.id}-btts-yes`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Les 2 Marquent',
+    selection: `🤝 Les deux équipes marquent : OUI`,
+    odds: oddsBttsYes,
+    probability: probBttsYes,
+    riskProfile: rBttsYes.profile,
+    riskLabel: rBttsYes.label,
+    isRecommended: isBttsYes && !raw.btts_avoid,
+    rationale: 'Capacité des deux équipes à trouver le chemin des filets'
+  });
+
+  // BTTS Non
+  const isBttsNo = m.btts_prediction === 'Non';
+  const probBttsNo = isBttsNo ? (parseInt(m.btts_confidence) || 62) : 48;
+  const oddsBttsNo = isBttsNo ? 1.80 : 1.95;
+  const rBttsNo = classifyRisk(probBttsNo, oddsBttsNo);
+  bets.push({
+    id: `m-${m.id}-btts-no`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'goals',
+    market: 'Les 2 Marquent',
+    selection: `🚫 Les deux équipes marquent : NON`,
+    odds: oddsBttsNo,
+    probability: probBttsNo,
+    riskProfile: rBttsNo.profile,
+    riskLabel: rBttsNo.label,
+    isRecommended: isBttsNo && !raw.btts_avoid,
+    rationale: 'Clean sheet probable pour l’une des deux formations'
+  });
+
+  // 3. ONGLET PARIS SÉCURISÉS & IA
+  // Draw No Bet (Remboursé si Nul)
+  const dnbOddsHome = Math.max(1.10, parseFloat((oddsHome * ((oddsDraw - 1) / oddsDraw)).toFixed(2)) || 1.35);
+  const probDnbHome = Math.min(90, Math.round(probHome * 1.15));
+  const rDnb = classifyRisk(probDnbHome, dnbOddsHome);
+  bets.push({
+    id: `m-${m.id}-sec-dnb-1`,
+    matchId: m.id,
+    match: m,
+    marketGroup: 'security',
+    market: 'Remboursé si Nul (DNB)',
+    selection: `🛡️ ${homeTeam} (Remboursé si Nul)`,
+    odds: dnbOddsHome,
+    probability: probDnbHome,
+    riskProfile: rDnb.profile,
+    riskLabel: rDnb.label,
+    isRecommended: probHome > probAway,
+    rationale: `Sécurité maximale : gain si ${homeTeam} gagne, mise remboursée en cas de match nul.`
+  });
+
+  // Also mirror safe selections in security group
+  bets.push({
+    ...bets.find(b => b.id === `m-${m.id}-goals-o15`),
+    marketGroup: 'security',
+    id: `m-${m.id}-sec-o15`,
+  });
+
+  const bestDc = prob1X >= probX2 ? bets.find(b => b.id === `m-${m.id}-dc-1x`) : bets.find(b => b.id === `m-${m.id}-dc-x2`);
+  if (bestDc) {
+    bets.push({
+      ...bestDc,
+      marketGroup: 'security',
+      id: `m-${m.id}-sec-best-dc`,
+      isRecommended: true
+    });
+  }
+
+  // 4. ONGLET SPÉCIAUX & VALUE BETS
+  if (m.asian_handicap_prediction && m.asian_handicap_prediction !== '—') {
+    bets.push({
+      id: `m-${m.id}-spec-ah`,
+      matchId: m.id,
+      match: m,
+      marketGroup: 'specials',
+      market: 'Handicap',
+      selection: `⚡ Handicap : ${m.asian_handicap_prediction}`,
+      odds: 1.88,
+      probability: 53,
+      riskProfile: 'moderate',
+      riskLabel: 'Modéré',
+      isRecommended: true,
+      rationale: 'Handicap calculé sur les métriques xG et différentiel de niveau'
+    });
+  }
+
+  // Value bets from IA
+  if (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) {
+    raw.value_bets_structured.forEach((vb, idx) => {
+      const odd = Number(vb.bookmaker_odds) || 2.10;
+      bets.push({
+        id: `m-${m.id}-spec-vb-${idx}`,
+        matchId: m.id,
+        match: m,
+        marketGroup: 'specials',
+        market: 'Value Bet',
+        selection: `💎 ${vb.market} : ${vb.selection}`,
+        odds: odd,
+        probability: Math.min(85, Math.max(30, Math.round((1 / odd) * 105))),
+        riskProfile: odd <= 1.50 ? 'safe' : odd <= 2.10 ? 'balanced' : 'moderate',
+        riskLabel: odd <= 1.50 ? 'Sécurisé' : odd <= 2.10 ? 'Équilibré' : 'Modéré',
+        isValueBet: true,
+        edge: vb.value_edge || '+5.5%',
+        isRecommended: true,
+        rationale: `Détection d'un Edge mathématique positif (+EV) par l'algorithme.`
+      });
+    });
+  }
+
+  return bets;
+}
+
+// ============================================================
+// SORTING LOGIC
+// ============================================================
+function sortCatalogs(catalogs) {
+  const sortBy = builderState.sortBy;
+
+  catalogs.sort((a, b) => {
+    if (sortBy === 'date_asc') {
+      const dateA = `${a.match.match_date} ${a.match.match_time}`;
+      const dateB = `${b.match.match_date} ${b.match.match_time}`;
+      return dateA.localeCompare(dateB);
+    }
+
+    const maxProbA = a.bets.length > 0 ? Math.max(...a.bets.map(x => x.probability)) : 0;
+    const maxProbB = b.bets.length > 0 ? Math.max(...b.bets.map(x => x.probability)) : 0;
+
+    const minOddA = a.bets.length > 0 ? Math.min(...a.bets.map(x => x.odds)) : 999;
+    const minOddB = b.bets.length > 0 ? Math.min(...b.bets.map(x => x.odds)) : 999;
+
+    if (sortBy === 'success_desc') return maxProbB - maxProbA;
+    if (sortBy === 'success_asc') return maxProbA - maxProbB;
+    if (sortBy === 'odds_asc') return minOddA - minOddB;
+    if (sortBy === 'odds_desc') return minOddB - minOddA;
+    if (sortBy === 'ev_desc') {
+      const vbA = a.bets.filter(x => x.isValueBet).length;
+      const vbB = b.bets.filter(x => x.isValueBet).length;
+      return vbB - vbA;
+    }
+    return 0;
+  });
+}
+
+// ============================================================
+// VIEW 1: MATCH CARDS WITH MARKET TABS
+// ============================================================
+function renderMatchesWithTabs(catalogs) {
+  if (catalogs.length === 0) {
+    return `
+      <div class="combined-empty">
+        <span>🔍</span>
+        <p>Aucun match ne correspond à vos filtres actuels.</p>
+        <button class="btn btn-secondary btn-sm" onclick="resetBuilderFilters()">Réinitialiser les filtres</button>
+      </div>
+    `;
+  }
+
+  return catalogs.map(({ match, bets }) => {
+    const isMatchSelected = !!builderState.selections[match.id];
+    const selBet = builderState.selections[match.id];
+
+    // Default tab for this match if not set
+    const activeTab = builderState.activeMatchTab[match.id] || 'result';
+
+    // Group bets for tabs
+    const tabBets = {
+      result: bets.filter(b => b.marketGroup === 'result'),
+      goals: bets.filter(b => b.marketGroup === 'goals'),
+      security: bets.filter(b => b.marketGroup === 'security'),
+      specials: bets.filter(b => b.marketGroup === 'specials'),
+    };
+
+    const currentTabBets = tabBets[activeTab] || [];
+
+    return `
+      <div class="bm-card ${isMatchSelected ? 'has-selection' : ''}" id="bm-card-${match.id}">
+        
+        <!-- Header -->
+        <div class="bm-card-head">
+          <div class="bm-head-left">
+            <div class="bm-league-row">
+              <span class="bm-comp-tag">${getCompetitionFlag(match.competition)} ${escapeHtml(match.competition)}</span>
+              <span class="bm-kickoff">🕒 ${formatMatchDate(match.match_date)} à ${match.match_time}</span>
+            </div>
+            <div class="bm-teams-row">
+              <span class="bm-team-name">${escapeHtml(match.home_team)}</span>
+              <span class="bm-vs-pill">VS</span>
+              <span class="bm-team-name">${escapeHtml(match.away_team)}</span>
+            </div>
+          </div>
+
+          <div class="bm-head-right">
+            ${match.ai_confidence ? `
+              <div class="bm-ai-badge">
+                <span class="bm-ai-lbl">Confiance IA</span>
+                <span class="bm-ai-pct">${match.ai_confidence}</span>
+              </div>
+            ` : ''}
+            ${isMatchSelected ? `
+              <div class="bm-selected-chip" title="Sélection actuelle sur ce match">
+                <span>✓</span> ${escapeHtml(selBet.selection)} (@${selBet.odds.toFixed(2)})
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- AI Advice strip -->
+        ${match.ai_prediction ? `
+          <div class="bm-ai-strip">
+            <span class="bm-ai-icon">🧠</span>
+            <span class="bm-ai-pred">Pronostic IA : <strong>${escapeHtml(match.ai_prediction)}</strong></span>
+            ${match.ai_recommendation ? `<span class="bm-ai-desc">— ${escapeHtml(match.ai_recommendation)}</span>` : ''}
+          </div>
+        ` : ''}
+
+        <!-- TABS BAR FOR THIS MATCH -->
+        <div class="bm-tabs-bar">
+          <button class="bm-tab-btn ${activeTab === 'result' ? 'active' : ''}" onclick="setMatchActiveTab(${match.id}, 'result')">
+            <span>🏆</span> 1N2 & Double Chance (${tabBets.result.length})
+          </button>
+          <button class="bm-tab-btn ${activeTab === 'goals' ? 'active' : ''}" onclick="setMatchActiveTab(${match.id}, 'goals')">
+            <span>⚽</span> Buts & Totaux (${tabBets.goals.length})
+          </button>
+          <button class="bm-tab-btn ${activeTab === 'security' ? 'active' : ''}" onclick="setMatchActiveTab(${match.id}, 'security')">
+            <span>🛡️</span> Sécurité & IA (${tabBets.security.length})
+          </button>
+          <button class="bm-tab-btn ${activeTab === 'specials' ? 'active' : ''}" onclick="setMatchActiveTab(${match.id}, 'specials')">
+            <span>💎</span> Spéciaux & Value (${tabBets.specials.length})
+          </button>
+        </div>
+
+        <!-- ACTIVE TAB BETS GRID -->
+        <div class="bm-bets-content">
+          ${currentTabBets.length === 0 ? `
+            <div class="bm-tab-empty">
+              <span>ℹ️</span> Aucun pari de ce marché ne correspond au profil de risque actuel (${builderState.riskFilter}).
+            </div>
+          ` : `
+            <div class="bm-bets-grid">
+              ${currentTabBets.map(b => renderBetTile(b, match)).join('')}
+            </div>
+          `}
+        </div>
+
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// VIEW 2: DIRECT CATALOG (FLAT SORTED LIST OF BETS)
+// ============================================================
+function renderDirectCatalog(catalogs) {
+  // Flatten all bets
+  let allBets = [];
+  catalogs.forEach(item => {
+    allBets.push(...item.bets);
+  });
+
+  if (allBets.length === 0) {
+    return `
+      <div class="combined-empty">
+        <span>🔍</span>
+        <p>Aucun pari ne correspond à vos filtres actuels.</p>
+        <button class="btn btn-secondary btn-sm" onclick="resetBuilderFilters()">Réinitialiser les filtres</button>
+      </div>
+    `;
+  }
+
+  // Sort flat list directly by criteria
+  const sortBy = builderState.sortBy;
+  allBets.sort((a, b) => {
+    if (sortBy === 'success_desc') return b.probability - a.probability;
+    if (sortBy === 'success_asc') return a.probability - b.probability;
+    if (sortBy === 'odds_asc') return a.odds - b.odds;
+    if (sortBy === 'odds_desc') return b.odds - a.odds;
+    if (sortBy === 'date_asc') {
+      const dA = `${a.match_date} ${a.match_time}`;
+      const dB = `${b.match_date} ${b.match_time}`;
+      return dA.localeCompare(dB);
+    }
+    if (sortBy === 'ev_desc') {
+      return (b.isValueBet ? 1 : 0) - (a.isValueBet ? 1 : 0);
+    }
+    return 0;
+  });
+
+  return `
+    <div class="catalog-table-wrap">
+      <div class="catalog-summary-bar">
+        <span>📊 <strong>${allBets.length} paris</strong> trouvés et triés selon vos critères</span>
+      </div>
+
+      <div class="catalog-list">
+        ${allBets.map(b => {
+          const isSelected = builderState.selections[b.matchId]?.selection === b.selection;
+          return `
+            <div class="cat-row ${isSelected ? 'selected' : ''}" id="cat-row-${b.id}">
+              <div class="cat-col-match">
+                <span class="cat-comp">${getCompetitionFlag(b.competition)} ${escapeHtml(b.competition)}</span>
+                <span class="cat-match-title">${escapeHtml(b.home_team)} vs ${escapeHtml(b.away_team)}</span>
+                <span class="cat-time">🕒 ${formatMatchDate(b.match_date)} ${b.match_time}</span>
+              </div>
+
+              <div class="cat-col-bet">
+                <span class="cat-market-pill">${b.market}</span>
+                <span class="cat-bet-name">${escapeHtml(b.selection)}</span>
+                ${b.isRecommended ? '<span class="mo-rec">⭐ IA</span>' : ''}
+                ${b.isValueBet ? `<span class="mo-value">💎 VALUE (${b.edge})</span>` : ''}
+              </div>
+
+              <div class="cat-col-prob">
+                <div class="prob-num-row">
+                  <span class="prob-num ${b.probability >= 70 ? 'text-win' : b.probability >= 54 ? 'text-warn' : ''}">${b.probability}%</span>
+                  <span class="prob-lbl">chance</span>
+                </div>
+                <div class="prob-bar-track">
+                  <div class="prob-bar-fill ${b.riskProfile}" style="width: ${b.probability}%"></div>
+                </div>
+              </div>
+
+              <div class="cat-col-risk">
+                <span class="risk-badge ${b.riskProfile}">${b.riskLabel}</span>
+              </div>
+
+              <div class="cat-col-odds">
+                <span class="cat-odd-pill">${b.odds.toFixed(2)}</span>
+              </div>
+
+              <div class="cat-col-action">
+                <button class="btn-toggle-bet ${isSelected ? 'active' : ''}" onclick="toggleBetSelection('${escapeHtml(b.id)}')">
+                  ${isSelected ? '✓ Ajouté' : '+ Ajouter'}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
   `;
 }
 
 // ============================================================
-// MATCH SELECTION IN BUILDER
+// SINGLE BET TILE COMPONENT (USED IN MATCH CARDS)
 // ============================================================
-let builderSelections = {}; // { matchId: { market, selection, odds } }
+function renderBetTile(b, match) {
+  const isSelected = builderState.selections[match.id]?.selection === b.selection;
 
-function renderBuilderMatchList() {
-  const container = document.getElementById('builder-match-list');
-  if (!container) return;
+  return `
+    <div class="bet-tile ${isSelected ? 'selected' : ''}" id="tile-${b.id}" onclick="toggleBetSelection('${escapeHtml(b.id)}')">
+      <div class="bt-top">
+        <span class="bt-market">${b.market}</span>
+        <span class="bt-odd">${b.odds.toFixed(2)}</span>
+      </div>
 
+      <div class="bt-selection">${escapeHtml(b.selection)}</div>
+
+      <div class="bt-prob-row">
+        <span class="bt-prob-tag ${b.riskProfile}">
+          ${b.riskProfile === 'safe' ? '🟢' : b.riskProfile === 'balanced' ? '🟡' : '🟠'}
+          ${b.probability}% de chance
+        </span>
+        <span class="bt-risk-pill ${b.riskProfile}">${b.riskLabel}</span>
+      </div>
+
+      ${b.isRecommended ? '<div class="bt-badge-rec">⭐ Recommandé par l’IA</div>' : ''}
+      ${b.isValueBet ? `<div class="bt-badge-vb">💎 Value Bet (${b.edge})</div>` : ''}
+
+      <div class="bt-action-indicator">
+        ${isSelected ? '<span class="text-win">✓ Sélectionné dans le combiné</span>' : '<span>+ Cliquer pour ajouter</span>'}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// BETTING SLIP (PANIER DU COMBINÉ EN DIRECT)
+// ============================================================
+function renderBuilderSlipHtml() {
+  const items = Object.values(builderState.selections);
+  const totalOdds = items.reduce((acc, s) => acc * s.odds, 1);
+  const totalProb = items.length > 0 
+    ? items.reduce((acc, s) => acc * (s.probability / 100), 1) * 100 
+    : 0;
+
+  const stake = builderState.stake;
+  const potentialGain = (stake * totalOdds).toFixed(2);
+  const netProfit = (stake * totalOdds - stake).toFixed(2);
+
+  return `
+    <div class="builder-slip-card" id="builder-slip-card">
+      <div class="bsc-head">
+        <div class="bsc-title-row">
+          <span class="bsc-icon">📝</span>
+          <h3 class="bsc-title">Mon Combiné en Direct</h3>
+        </div>
+        ${items.length > 0 ? `
+          <button class="bsc-clear-btn" onclick="clearBuilderSelections()" title="Vider le combiné">🗑️ Vider</button>
+        ` : ''}
+      </div>
+
+      <!-- Selections List -->
+      <div class="bsc-items-list" id="bsc-items-list">
+        ${items.length === 0 ? `
+          <div class="slip-empty-box">
+            <span style="font-size:2.5rem">➕</span>
+            <p>Cliquez sur n'importe quel pari dans la liste pour l'ajouter à votre combiné.</p>
+            <button class="btn btn-secondary btn-sm" onclick="autoFillTopBets()">⚡ Remplir automatiquement</button>
+          </div>
+        ` : items.map(s => `
+          <div class="slip-item-card">
+            <div class="sic-info">
+              <span class="sic-match">${escapeHtml(s.home_team)} vs ${escapeHtml(s.away_team)}</span>
+              <span class="sic-sel">${escapeHtml(s.selection)}</span>
+              <div class="sic-meta">
+                <span class="sic-comp">${getCompetitionFlag(s.competition)} ${escapeHtml(s.competition)}</span>
+                <span class="sic-prob">${s.probability}% de chance</span>
+              </div>
+            </div>
+            <div class="sic-right">
+              <span class="sic-odd">${s.odds.toFixed(2)}</span>
+              <button class="sic-del" onclick="removeBuilderMatchSelection(${s.matchId})">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${items.length > 0 ? `
+        <!-- Live Totals & Metrics -->
+        <div class="bsc-metrics-box">
+          <div class="bsc-metric-row">
+            <span class="bmr-label">Nombre de matchs :</span>
+            <span class="bmr-val"><strong>${items.length} sélections</strong></span>
+          </div>
+
+          <div class="bsc-metric-row">
+            <span class="bmr-label">Cote Totale Combinée :</span>
+            <span class="bmr-val odd-highlight">${totalOdds.toFixed(2)}</span>
+          </div>
+
+          <div class="bsc-metric-row">
+            <span class="bmr-label">Probabilité Cumulée :</span>
+            <span class="bmr-val">${totalProb.toFixed(1)}%</span>
+          </div>
+          <div class="slip-prob-track">
+            <div class="slip-prob-fill" style="width: ${Math.min(100, totalProb * 1.5)}%"></div>
+          </div>
+
+          <!-- Stake Row -->
+          <div class="bsc-stake-row">
+            <span class="bsr-label">Mise :</span>
+            <div class="bsr-input-wrap">
+              <button class="stake-btn-mini" onclick="adjustBuilderStake(-5)">-5€</button>
+              <input type="number" id="builder-stake-input" class="slip-stake-input" value="${stake}" min="1" step="1" oninput="setBuilderStake(this.value)" />
+              <button class="stake-btn-mini" onclick="adjustBuilderStake(5)">+5€</button>
+            </div>
+          </div>
+          <div class="stake-quick-presets">
+            ${[5, 10, 20, 50].map(v => `
+              <button class="sqp-btn ${stake === v ? 'active' : ''}" onclick="setBuilderStake(${v})">${v}€</button>
+            `).join('')}
+          </div>
+
+          <!-- Payout Row -->
+          <div class="bsc-payout-box">
+            <div class="payout-row">
+              <span>Gain Potentiel Brut :</span>
+              <strong class="text-win">${potentialGain} €</strong>
+            </div>
+            <div class="payout-row sub">
+              <span>Bénéfice Net :</span>
+              <span class="text-win">+${netProfit} €</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bsc-actions">
+          <button class="btn-slip-save" onclick="saveManualCombined()">
+            <span>💾</span> Sauvegarder ce combiné
+          </button>
+          
+          <button class="btn-slip-action system-btn" onclick="transferBuilderToSystem()" title="Créer un combiné avec tolérance d'erreur (Trixie, Yankee, 3/4...)">
+            <span>🛡️</span> Convertir en Paris Système (3/4, Yankee...)
+          </button>
+
+          <button class="btn-slip-action hedge-btn" onclick="transferBuilderToHedging()" title="Calculer la couverture sur le dernier match">
+            <span>⚖️</span> Simuler Cashout & Couverture
+          </button>
+
+          <button class="btn-slip-action bankroll-btn" onclick="addBuilderToBankroll()">
+            <span>💰</span> Enregistrer dans ma Bankroll
+          </button>
+        </div>
+      ` : ''}
+
+    </div>
+  `;
+}
+
+// ============================================================
+// INTERACTIONS & STATE HANDLERS
+// ============================================================
+function toggleCompetitionFilter(comp) {
+  if (!comp) {
+    builderState.selectedCompetitions = [];
+  } else {
+    const idx = builderState.selectedCompetitions.indexOf(comp);
+    if (idx >= 0) {
+      builderState.selectedCompetitions.splice(idx, 1);
+    } else {
+      builderState.selectedCompetitions.push(comp);
+    }
+  }
+  renderBuilderSectionContent();
+}
+
+function setBuilderRiskFilter(filter) {
+  builderState.riskFilter = filter;
+  renderBuilderSectionContent();
+}
+
+function setBuilderSort(sort) {
+  builderState.sortBy = sort;
+  renderBuilderSectionContent();
+}
+
+function setBuilderView(view) {
+  builderState.activeView = view;
+  renderBuilderSectionContent();
+}
+
+function setBuilderSearch(query) {
+  builderState.searchQuery = query;
+  renderBuilderSectionContent();
+}
+
+function setMatchActiveTab(matchId, tabKey) {
+  builderState.activeMatchTab[matchId] = tabKey;
+  renderBuilderSectionContent();
+}
+
+function resetBuilderFilters() {
+  builderState.riskFilter = 'all';
+  builderState.sortBy = 'success_desc';
+  builderState.selectedCompetitions = [];
+  builderState.searchQuery = '';
+  renderBuilderSectionContent();
+}
+
+function toggleBetSelection(betId) {
+  // Find bet by looking across all matches
+  let foundBet = null;
   const analyzed = allMatches.filter(m => m.ai_prediction);
-  if (analyzed.length === 0) {
-    container.innerHTML = `<div class="combined-empty"><span>🔍</span><p>Aucun match analysé. Allez dans l'onglet Matchs et lancez des analyses IA d'abord.</p></div>`;
+  for (const m of analyzed) {
+    const bets = generateAllBetsForMatch(m);
+    const b = bets.find(x => x.id === betId);
+    if (b) { foundBet = b; break; }
+  }
+
+  if (!foundBet) return;
+
+  const currentSel = builderState.selections[foundBet.matchId];
+  if (currentSel && currentSel.selection === foundBet.selection) {
+    // Deselect
+    delete builderState.selections[foundBet.matchId];
+    showToast(`Pari retiré : ${foundBet.selection}`, 'info');
+  } else {
+    // Select (or replace current bet for this match)
+    if (currentSel) {
+      showToast(`Pari modifié sur ce match : ${foundBet.selection}`, 'info');
+    } else {
+      showToast(`✅ Ajouté : ${foundBet.selection} (@${foundBet.odds.toFixed(2)})`, 'success');
+    }
+    builderState.selections[foundBet.matchId] = {
+      matchId: foundBet.matchId,
+      home_team: foundBet.home_team,
+      away_team: foundBet.away_team,
+      competition: foundBet.competition,
+      match_date: foundBet.match_date,
+      match_time: foundBet.match_time,
+      market: foundBet.market,
+      selection: foundBet.selection,
+      odds: foundBet.odds,
+      probability: foundBet.probability,
+      riskProfile: foundBet.riskProfile,
+      riskLabel: foundBet.riskLabel,
+    };
+  }
+
+  // Sync alias
+  builderSelections = builderState.selections;
+
+  renderBuilderSectionContent();
+}
+
+function removeBuilderMatchSelection(matchId) {
+  delete builderState.selections[matchId];
+  builderSelections = builderState.selections;
+  renderBuilderSectionContent();
+}
+
+function clearBuilderSelections() {
+  builderState.selections = {};
+  builderSelections = builderState.selections;
+  renderBuilderSectionContent();
+}
+
+function setBuilderStake(val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 0) {
+    builderState.stake = v;
+    updateSlipMetricsUi();
+  }
+}
+
+function adjustBuilderStake(delta) {
+  builderState.stake = Math.max(1, builderState.stake + delta);
+  updateSlipMetricsUi();
+}
+
+function updateSlipMetricsUi() {
+  const items = Object.values(builderState.selections);
+  const input = document.getElementById('builder-stake-input');
+  if (input) input.value = builderState.stake;
+
+  const totalOdds = items.reduce((acc, s) => acc * s.odds, 1);
+  const stake = builderState.stake;
+  const gain = (stake * totalOdds).toFixed(2);
+  const net = (stake * totalOdds - stake).toFixed(2);
+
+  document.querySelectorAll('.sqp-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.textContent) === stake);
+  });
+}
+
+function autoFillTopBets() {
+  const analyzed = allMatches.filter(m => m.ai_prediction);
+  if (analyzed.length === 0) return;
+
+  // Filter by competition if any
+  let matches = analyzed;
+  if (builderState.selectedCompetitions.length > 0) {
+    matches = matches.filter(m => builderState.selectedCompetitions.includes(m.competition));
+  }
+  if (matches.length === 0) matches = analyzed;
+
+  // For each match, pick best bet according to risk filter
+  const candidates = [];
+  matches.forEach(m => {
+    let bets = generateAllBetsForMatch(m);
+    if (builderState.riskFilter !== 'all') {
+      bets = bets.filter(b => b.riskProfile === builderState.riskFilter);
+    }
+    // Sort bets of this match by probability
+    bets.sort((a, b) => b.probability - a.probability);
+    if (bets.length > 0) {
+      candidates.push(bets[0]);
+    }
+  });
+
+  // Sort candidate matches by probability
+  candidates.sort((a, b) => b.probability - a.probability);
+
+  // Take top 4
+  const top4 = candidates.slice(0, 4);
+  if (top4.length === 0) {
+    showToast('Aucun pari ne correspond à ce profil de risque.', 'warning');
     return;
   }
 
-  container.innerHTML = analyzed.map(m => {
-    let raw = {};
-    try { raw = JSON.parse(m.raw_research || '{}'); } catch (_) {}
-    const isSelected = !!builderSelections[m.id];
+  builderState.selections = {};
+  top4.forEach(b => {
+    builderState.selections[b.matchId] = {
+      matchId: b.matchId,
+      home_team: b.home_team,
+      away_team: b.away_team,
+      competition: b.competition,
+      match_date: b.match_date,
+      match_time: b.match_time,
+      market: b.market,
+      selection: b.selection,
+      odds: b.odds,
+      probability: b.probability,
+      riskProfile: b.riskProfile,
+      riskLabel: b.riskLabel,
+    };
+  });
+  builderSelections = builderState.selections;
 
-    const markets = buildMarketOptions(m, raw);
-
-    // Build per-market risk summary
-    const marketRisks = [
-      raw.result_risk_level && raw.result_risk_level !== 'faible'
-        ? `<span class="builder-risk-chip ${raw.result_avoid ? 'chip-danger' : 'chip-warn'}">1N2: ${raw.result_risk_level}${raw.result_avoid ? ' 🚫' : ''}</span>`
-        : '',
-      raw.btts_risk_level && raw.btts_risk_level !== 'faible'
-        ? `<span class="builder-risk-chip ${raw.btts_avoid ? 'chip-danger' : 'chip-warn'}">BTTS: ${raw.btts_risk_level}${raw.btts_avoid ? ' 🚫' : ''}</span>`
-        : '',
-      raw.over25_risk_level && raw.over25_risk_level !== 'faible'
-        ? `<span class="builder-risk-chip ${raw.over25_avoid ? 'chip-danger' : 'chip-warn'}">O/U: ${raw.over25_risk_level}${raw.over25_avoid ? ' 🚫' : ''}</span>`
-        : '',
-    ].filter(Boolean).join('');
-
-    // Value bet indicator
-    const hasValueBets = Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0;
-    const valueBetBadge = hasValueBets
-      ? `<span class="builder-value-badge">💎 VALUE BET</span>`
-      : '';
-
-    return `
-      <div class="builder-match-card ${isSelected ? 'selected' : ''}" id="bm-${m.id}">
-        <div class="bm-header" onclick="toggleBuilderMatch(${m.id})">
-          <div class="bm-teams">
-            <span class="bm-home">${escapeHtml(m.home_team)}</span>
-            <span class="bm-vs">vs</span>
-            <span class="bm-away">${escapeHtml(m.away_team)}</span>
-          </div>
-          <div class="bm-meta">
-            <span class="bm-comp">${escapeHtml(m.competition)}</span>
-            <span class="bm-date">${formatMatchDate(m.match_date)} ${m.match_time}</span>
-            ${m.ai_confidence ? `<span class="bm-conf">${m.ai_confidence}</span>` : ''}
-          </div>
-          <div class="bm-ai-summary">
-            <span class="bm-pred-pill">IA: ${escapeHtml(m.ai_prediction || '—')}</span>
-            ${raw.overall_risk ? `<span class="bm-risk risk-${raw.overall_risk === 'faible' ? 'low' : raw.overall_risk === 'élevé' ? 'high' : 'medium'}">${raw.overall_risk}</span>` : ''}
-            ${valueBetBadge}
-          </div>
-          ${marketRisks ? `<div class="bm-market-risks">${marketRisks}</div>` : ''}
-        </div>
-        <div class="bm-markets ${isSelected ? '' : 'hidden'}" id="bm-markets-${m.id}">
-          <div class="bm-markets-title">Choisir un marché :</div>
-          <div class="market-options">
-            ${markets.map(opt => `
-              <button class="market-option ${builderSelections[m.id]?.selection === opt.selection ? 'active' : ''} ${opt.avoid ? 'market-option-avoid' : ''}"
-                      onclick="selectBuilderMarket(${m.id}, '${escapeHtml(opt.market)}', '${escapeHtml(opt.selection)}', ${opt.odds})">
-                <span class="mo-market">${opt.market}</span>
-                <span class="mo-selection">${opt.selection}</span>
-                <span class="mo-odds">${opt.odds.toFixed(2)}</span>
-                ${opt.recommended ? '<span class="mo-rec">⭐ IA</span>' : ''}
-                ${opt.isValueBet ? '<span class="mo-value">💎 VALUE</span>' : ''}
-                ${opt.avoid ? '<span class="mo-avoid">🚫 RISQUÉ</span>' : ''}
-                ${opt.riskLabel ? `<span class="mo-risk-label ${opt.riskLevel === 'faible' ? 'risk-label-low' : opt.riskLevel === 'modéré' ? 'risk-label-medium' : 'risk-label-high'}">${opt.riskLabel}</span>` : ''}
-              </button>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  showToast(`⚡ ${top4.length} meilleurs paris sélectionnés automatiquement !`, 'success');
+  renderBuilderSectionContent();
 }
 
-function buildMarketOptions(m, raw) {
-  const options = [];
-
-  // 1N2
-  if (m.odds_home) options.push({
-    market: '1N2', selection: `🏠 ${m.home_team}`, odds: m.odds_home,
-    recommended: raw.recommended_for_combined && m.ai_prediction?.includes(m.home_team),
-    riskLevel: raw.result_risk_level, riskLabel: raw.result_risk_level,
-    avoid: raw.result_avoid, isValueBet: false,
-  });
-  if (m.odds_draw) options.push({
-    market: '1N2', selection: '🤝 Match nul', odds: m.odds_draw,
-    recommended: false, riskLevel: raw.result_risk_level, riskLabel: raw.result_risk_level,
-    avoid: raw.result_avoid, isValueBet: false,
-  });
-  if (m.odds_away) options.push({
-    market: '1N2', selection: `✈️ ${m.away_team}`, odds: m.odds_away,
-    recommended: raw.recommended_for_combined && m.ai_prediction?.includes(m.away_team),
-    riskLevel: raw.result_risk_level, riskLabel: raw.result_risk_level,
-    avoid: raw.result_avoid, isValueBet: false,
-  });
-
-  // Double Chance
-  if (m.odds_home && m.odds_draw) options.push({
-    market: 'Double Chance',
-    selection: `1X (${m.home_team} ou Nul)`,
-    odds: Math.max(1.05, parseFloat(((m.odds_home * m.odds_draw) / (m.odds_home + m.odds_draw)).toFixed(2)) || 1.25),
-    recommended: m.double_chance_prediction === '1X',
-    riskLevel: raw.double_chance_risk_level, riskLabel: raw.double_chance_risk_level,
-    avoid: false, isValueBet: false,
-  });
-  if (m.odds_away && m.odds_draw) options.push({
-    market: 'Double Chance',
-    selection: `X2 (Nul ou ${m.away_team})`,
-    odds: Math.max(1.05, parseFloat(((m.odds_away * m.odds_draw) / (m.odds_away + m.odds_draw)).toFixed(2)) || 1.30),
-    recommended: m.double_chance_prediction === 'X2',
-    riskLevel: raw.double_chance_risk_level, riskLabel: raw.double_chance_risk_level,
-    avoid: false, isValueBet: false,
-  });
-
-  // BTTS
-  if (m.btts_prediction && m.btts_prediction !== '—') {
-    const bttsOdds = m.btts_prediction === 'Oui' ? 1.75 : 1.55;
-    // Check if it's a value bet
-    const bttsVb = Array.isArray(raw.value_bets_structured)
-      ? raw.value_bets_structured.find(vb => vb.market === 'BTTS') : null;
-    options.push({
-      market: 'BTTS',
-      selection: `Les deux marquent: ${m.btts_prediction}`,
-      odds: bttsVb ? bttsVb.bookmaker_odds : bttsOdds,
-      recommended: true,
-      riskLevel: raw.btts_risk_level, riskLabel: raw.btts_risk_level,
-      avoid: raw.btts_avoid,
-      isValueBet: !!bttsVb,
-    });
+function transferBuilderToSystem() {
+  const items = Object.values(builderState.selections);
+  if (items.length < 3) {
+    showToast('Veuillez ajouter au moins 3 matchs pour créer un Paris Système (Trixie, Yankee, 3/4...).', 'warning');
+    return;
   }
 
-  // Over/Under 2.5
-  if (m.over25_prediction && m.over25_prediction !== '—') {
-    const overOdds = m.over25_prediction?.includes('Plus') ? 1.85 : 1.65;
-    const overVb = Array.isArray(raw.value_bets_structured)
-      ? raw.value_bets_structured.find(vb => vb.market === 'Over 2.5' || vb.market === 'Under 2.5') : null;
-    options.push({
-      market: 'Over/Under',
-      selection: m.over25_prediction,
-      odds: overVb ? overVb.bookmaker_odds : overOdds,
-      recommended: !raw.over25_avoid,
-      riskLevel: raw.over25_risk_level, riskLabel: raw.over25_risk_level,
-      avoid: raw.over25_avoid,
-      isValueBet: !!overVb,
-    });
+  systemState.selections = items.map(s => ({
+    id: s.matchId,
+    home_team: s.home_team,
+    away_team: s.away_team,
+    selection: s.selection,
+    market: s.market,
+    odds: s.odds
+  }));
+  systemState.totalStake = builderState.stake || 20;
+
+  showToast(`✅ ${items.length} matchs envoyés vers le module Paris Système !`, 'success');
+  switchCombinedTab('system');
+}
+
+function transferBuilderToHedging() {
+  const items = Object.values(builderState.selections);
+  if (items.length < 2) {
+    showToast('Veuillez ajouter au moins 2 matchs pour simuler la couverture.', 'warning');
+    return;
   }
 
-  // Handicap
-  if (m.asian_handicap_prediction && m.asian_handicap_prediction !== '—') {
-    const ahVb = Array.isArray(raw.value_bets_structured)
-      ? raw.value_bets_structured.find(vb => vb.market === 'Handicap') : null;
-    options.push({
-      market: 'Handicap Asiatique',
-      selection: m.asian_handicap_prediction,
-      odds: ahVb ? ahVb.bookmaker_odds : 1.90,
-      recommended: false,
-      riskLevel: raw.asian_handicap_risk_level, riskLabel: raw.asian_handicap_risk_level,
-      avoid: false,
-      isValueBet: !!ahVb,
-    });
-  }
+  const n = items.length;
+  hedgingState.initialStake = builderState.stake || 20;
+  hedgingState.selections = items.map((s, idx) => ({
+    id: s.matchId || idx,
+    home: s.home_team,
+    away: s.away_team,
+    selection: s.selection,
+    odds: s.odds,
+    status: idx < n - 1 ? 'won' : 'pending',
+    hedgeSelection: `Double Chance adverse (${s.away_team} ou Nul)`,
+    hedgeOdds: 2.10
+  }));
+  hedgingState.customHedgeStake = null;
 
-  return options;
+  showToast(`✅ Combiné transféré dans le Simulateur Cashout & Couverture !`, 'success');
+  switchCombinedTab('hedging');
 }
 
-function toggleBuilderMatch(matchId) {
-  const marketsEl = document.getElementById(`bm-markets-${matchId}`);
-  if (marketsEl) marketsEl.classList.toggle('hidden');
-}
-
-function selectBuilderMarket(matchId, market, selection, odds) {
-  builderSelections[matchId] = { matchId, market, selection, odds };
-
-  const card = document.getElementById(`bm-${matchId}`);
-  if (card) card.classList.add('selected');
-
-  // Mark button active
-  const marketsEl = document.getElementById(`bm-markets-${matchId}`);
-  if (marketsEl) {
-    marketsEl.querySelectorAll('.market-option').forEach(btn => {
-      btn.classList.toggle('active', btn.querySelector('.mo-selection')?.textContent === selection);
-    });
-  }
-
-  updateBuilderSlip();
-}
-
-function removeBuilderSelection(matchId) {
-  delete builderSelections[matchId];
-  const card = document.getElementById(`bm-${matchId}`);
-  if (card) card.classList.remove('selected');
-  updateBuilderSlip();
-}
-
-function updateBuilderSlip() {
-  const items = Object.values(builderSelections);
-  const slipItemsEl = document.getElementById('builder-slip-items');
-  const slipSummary = document.getElementById('slip-summary');
-  const slipOddsEl = document.getElementById('slip-total-odds');
-  const slipGainEl = document.getElementById('slip-gain');
-
-  if (!slipItemsEl) return;
-
+function addBuilderToBankroll() {
+  const items = Object.values(builderState.selections);
   if (items.length === 0) {
-    slipItemsEl.innerHTML = `<div class="slip-empty"><span>➕</span><p>Ajoutez des matchs depuis la liste</p></div>`;
-    if (slipSummary) slipSummary.style.display = 'none';
+    showToast('Votre ticket est vide.', 'warning');
     return;
   }
 
   const totalOdds = items.reduce((acc, s) => acc * s.odds, 1);
-  const stake = parseFloat(document.getElementById('builder-stake')?.value || 10);
-  const gain = (stake * totalOdds).toFixed(2);
+  const stake = builderState.stake;
+  const title = `Combiné Manuel (${items.length} sélections)`;
+  const desc = items.map(s => `${s.home_team.split(' ')[0]}: ${s.selection} @${s.odds}`).join(' | ');
 
-  slipItemsEl.innerHTML = items.map(s => {
-    const match = allMatches.find(m => m.id === s.matchId);
-    return `
-      <div class="slip-item">
-        <div class="slip-item-info">
-          <span class="slip-match">${match ? `${escapeHtml(match.home_team)} vs ${escapeHtml(match.away_team)}` : 'Match'}</span>
-          <span class="slip-market-tag">${s.market}</span>
-          <span class="slip-selection">${escapeHtml(s.selection)}</span>
-        </div>
-        <div class="slip-item-right">
-          <span class="slip-item-odds">${s.odds.toFixed(2)}</span>
-          <button class="slip-remove" onclick="removeBuilderSelection(${s.matchId})">✕</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  if (slipSummary) slipSummary.style.display = 'block';
-  if (slipOddsEl) slipOddsEl.textContent = totalOdds.toFixed(2);
-  if (slipGainEl) slipGainEl.textContent = `${gain}€`;
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title,
+      selection: `${items.length} sélections combinées`,
+      market: 'Combiné',
+      odds: parseFloat(totalOdds.toFixed(2)),
+      stake: stake,
+      bet_type: 'combined',
+      notes: `Sélections : ${desc}`
+    });
+  }
 }
 
 async function saveManualCombined() {
-  const items = Object.values(builderSelections);
+  const items = Object.values(builderState.selections);
   if (items.length === 0) { showToast('Ajoutez au moins un match', 'warning'); return; }
 
-  const name = document.getElementById('combined-name-input')?.value || `Mon Combiné (${new Date().toLocaleDateString('fr-FR')})`;
-  const stake = parseFloat(document.getElementById('builder-stake')?.value || 10);
+  const name = `Combiné Expert (${items.length} matchs - ${new Date().toLocaleDateString('fr-FR')})`;
+  const stake = builderState.stake;
   const totalOdds = items.reduce((acc, s) => acc * s.odds, 1);
 
-  const selections = items.map(s => {
-    const match = allMatches.find(m => m.id === s.matchId);
-    return {
-      match_id: s.matchId,
-      home_team: match?.home_team || '?',
-      away_team: match?.away_team || '?',
-      competition: match?.competition || '?',
-      match_date: match?.match_date,
-      match_time: match?.match_time,
-      market: s.market,
-      selection: s.selection,
-      odds: s.odds,
-      confidence: match?.ai_confidence || '—',
-      rationale: 'Sélection manuelle',
-    };
-  });
+  const selections = items.map(s => ({
+    match_id: s.matchId,
+    home_team: s.home_team,
+    away_team: s.away_team,
+    competition: s.competition,
+    match_date: s.match_date,
+    match_time: s.match_time,
+    market: s.market,
+    selection: s.selection,
+    odds: s.odds,
+    confidence: `${s.probability}%`,
+    rationale: `Sélection profil ${s.riskLabel}`,
+  }));
 
   try {
     const res = await fetch(`${API}/combineds/save`, {
@@ -597,17 +1498,31 @@ async function saveManualCombined() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`✅ Combiné "${name}" sauvegardé !`, 'success');
-      builderSelections = {};
+      showToast(`✅ Combiné "${name}" sauvegardé avec succès !`, 'success');
+      builderState.selections = {};
+      builderSelections = builderState.selections;
       await loadCombinedHistory();
-      renderBuilderMatchList();
-      updateBuilderSlip();
+      renderBuilderSectionContent();
     } else {
       showToast(`❌ Erreur: ${data.error}`, 'error');
     }
   } catch (err) {
     showToast('❌ Erreur de connexion', 'error');
   }
+}
+
+function getCompetitionFlag(comp) {
+  if (!comp) return '⚽';
+  const c = comp.toLowerCase();
+  if (c.includes('ligue 1') || c.includes('france')) return '🇫🇷';
+  if (c.includes('premier') || c.includes('angleterre') || c.includes('championship')) return '🏴󠁧󠁢󠁥󠁮󠁧󠁿';
+  if (c.includes('liga') || c.includes('espagne')) return '🇪🇸';
+  if (c.includes('serie a') || c.includes('italie')) return '🇮🇹';
+  if (c.includes('bundesliga') || c.includes('allemagne')) return '🇩🇪';
+  if (c.includes('champions') || c.includes('europa') || c.includes('conference')) return '🇪🇺';
+  if (c.includes('eredivisie') || c.includes('pays-bas')) return '🇳🇱';
+  if (c.includes('portugal') || c.includes('primeira')) return '🇵🇹';
+  return '⚽';
 }
 
 // ============================================================

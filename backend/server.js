@@ -348,7 +348,8 @@ app.post('/api/combineds/generate', async (req, res) => {
     targetOddsRange,
     preferredMarkets,
     cashoutOptimized,
-    matchIds
+    matchIds,
+    competitions
   } = req.body;
 
   try {
@@ -376,6 +377,10 @@ app.post('/api/combineds/generate', async (req, res) => {
         ORDER BY m.match_date ASC, m.match_time ASC
         LIMIT 50
       `).all();
+    }
+
+    if (Array.isArray(competitions) && competitions.length > 0) {
+      matches = matches.filter(m => competitions.includes(m.competition));
     }
 
     if (matches.length === 0) {
