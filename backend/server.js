@@ -9,6 +9,7 @@ const { scrapeMatches } = require('./scraper');
 const { getAllCompetitionsMockData, getAllAnalysesMockData } = require('./scraper/mock-data');
 const { analyzeMatch, generateCombined, initAI } = require('./ai-research');
 const { 
+  VAPID_PUBLIC_KEY,
   sendValueBetAlert, 
   sendCombinedAlert, 
   sendDroppingOddsAlert, 
@@ -657,12 +658,56 @@ app.post('/api/lineups/check/:id', async (req, res) => {
   }
 });
 
+// ============================================================
+// DIRECT WEB PUSH NOTIFICATIONS (PHONE / BROWSER)
+// ============================================================
+
+app.get('/api/push/public-key', (req, res) => {
+  res.json({ success: true, publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', (req, res) => {
+  try {
+    const { subscription, userAgent } = req.body || {};
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return res.status(400).json({ success: false, error: 'Données d\'abonnement push manquantes' });
+    }
+
+    const { endpoint, keys } = subscription;
+    db.prepare(`
+      INSERT INTO push_subscriptions (endpoint, keys_p256dh, keys_auth, user_agent, created_at)
+      VALUES (?, ?, ?, ?, datetime('now'))
+      ON CONFLICT(endpoint) DO UPDATE SET
+        keys_p256dh = excluded.keys_p256dh,
+        keys_auth = excluded.keys_auth,
+        user_agent = excluded.user_agent
+    `).run(endpoint, keys.p256dh, keys.auth, userAgent || req.headers['user-agent'] || '');
+
+    res.json({ success: true, message: 'Votre téléphone est maintenant abonné aux alertes push directes !' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/push/unsubscribe', (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (endpoint) {
+      db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
+    }
+    res.json({ success: true, message: 'Désabonné des notifications push' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/bankroll/settings', (req, res) => {
   try {
     const {
       initial_bankroll,
       currency,
       kelly_fraction,
+      ntfy_topic,
       telegram_bot_token,
       telegram_chat_id,
       discord_webhook_url,
@@ -683,6 +728,7 @@ app.post('/api/bankroll/settings', (req, res) => {
         initial_bankroll = COALESCE(?, initial_bankroll),
         currency = COALESCE(?, currency),
         kelly_fraction = COALESCE(?, kelly_fraction),
+        ntfy_topic = COALESCE(?, ntfy_topic),
         telegram_bot_token = COALESCE(?, telegram_bot_token),
         telegram_chat_id = COALESCE(?, telegram_chat_id),
         discord_webhook_url = COALESCE(?, discord_webhook_url),
@@ -702,6 +748,7 @@ app.post('/api/bankroll/settings', (req, res) => {
       initial_bankroll !== undefined && initial_bankroll !== '' ? parseFloat(initial_bankroll) : null,
       currency || null,
       kelly_fraction !== undefined && kelly_fraction !== '' ? parseFloat(kelly_fraction) : null,
+      ntfy_topic !== undefined ? ntfy_topic.trim() : null,
       telegram_bot_token !== undefined ? telegram_bot_token.trim() : null,
       telegram_chat_id !== undefined ? telegram_chat_id.trim() : null,
       discord_webhook_url !== undefined ? discord_webhook_url.trim() : null,
@@ -725,7 +772,7 @@ app.post('/api/bankroll/settings', (req, res) => {
 
 app.post('/api/notifications/test', async (req, res) => {
   try {
-    const { type, token, chatId, webhookUrl, host, port, user, pass, recipient } = req.body;
+    const { type, token, chatId, webhookUrl, host, port, user, pass, recipient, ntfyTopic } = req.body;
     let customConfig = null;
     if (type === 'telegram' && (token || chatId)) {
       customConfig = { telegramToken: token, telegramChatId: chatId };
@@ -739,9 +786,11 @@ app.post('/api/notifications/test', async (req, res) => {
         smtpUser: user,
         smtpPass: pass
       };
+    } else if (type === 'ntfy' && ntfyTopic) {
+      customConfig = { ntfyTopic };
     }
 
-    const result = await testNotification(type || 'telegram', customConfig);
+    const result = await testNotification(type || 'webpush', customConfig);
     if (result.success) {
       res.json({ success: true, message: 'Notification de test envoyée avec succès !' });
     } else {

@@ -1,5 +1,5 @@
 /* ================================================================
-   SETTINGS & NOTIFICATIONS CONFIGURATION
+   SETTINGS & MULTI-CHANNEL MOBILE NOTIFICATIONS (NO BOT REQUIRED)
    ================================================================ */
 
 let appSettings = {
@@ -7,23 +7,51 @@ let appSettings = {
   current_bankroll: 1000,
   currency: '€',
   kelly_fraction: 0.25,
+  ntfy_topic: 'betclic-micha-alertes',
+  email_recipient: '',
+  smtp_host: '',
+  smtp_port: 587,
+  smtp_user: '',
+  smtp_pass: '',
+  discord_webhook_url: '',
   telegram_bot_token: '',
   telegram_chat_id: '',
-  discord_webhook_url: '',
   notify_value_bets: 1,
-  notify_combineds: 1
+  notify_combineds: 1,
+  notify_dropping_odds: 1,
+  notify_settlements: 1,
+  notify_lineups: 1
 };
+
+let isPushSubscribed = false;
 
 async function loadSettings() {
   try {
     const res = await fetch(`${API}/bankroll`);
     const data = await res.json();
     if (data.success && data.data.settings) {
-      appSettings = data.data.settings;
+      appSettings = { ...appSettings, ...data.data.settings };
+      await checkPushSubscriptionStatus();
       renderSettingsPage();
     }
   } catch (err) {
     console.error('loadSettings error:', err);
+  }
+}
+
+async function checkPushSubscriptionStatus() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    isPushSubscribed = false;
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (reg) {
+      const sub = await reg.pushManager.getSubscription();
+      isPushSubscribed = !!sub;
+    }
+  } catch (_) {
+    isPushSubscribed = false;
   }
 }
 
@@ -35,8 +63,8 @@ function renderSettingsPage() {
     <div class="settings-container">
       
       <div class="settings-header">
-        <h2>⚙️ Paramètres & Alertes Pro</h2>
-        <p>Configurez votre capital de départ, vos alertes instantanées Telegram et vos critères de mise.</p>
+        <h2>⚙️ Paramètres & Alertes Smartphone</h2>
+        <p>Recevez vos alertes de cotes en chute, compositions officielles et règlements de paris directement sur votre smartphone (sans bot Telegram).</p>
       </div>
 
       <!-- Bankroll Settings Form -->
@@ -81,121 +109,126 @@ function renderSettingsPage() {
         </form>
       </div>
 
-      <!-- Telegram & Discord Notifications -->
-      <div class="settings-card">
+      <!-- Smartphone Push Notifications (NO BOT REQUIRED) -->
+      <div class="settings-card highlight-card">
         <div class="settings-card-title">
           <span class="sc-icon">📲</span>
-          <h3>Alertes Automatiques Telegram & Discord (24h/24)</h3>
+          <h3>1. Notifications Push Directes sur ce Téléphone (1 Clic)</h3>
         </div>
-        <p class="sc-desc">Recevez les meilleures pépites Value Bets et les tickets combinés dès que le serveur les détecte, même téléphone verrouillé.</p>
+        <p class="sc-desc">
+          Le moyen le plus simple et sans aucun compte : activez les notifications directement dans votre navigateur. Vous recevrez une alerte native sur votre écran même lorsque le site est fermé !
+        </p>
+
+        <div class="push-activation-box">
+          <div class="push-status-indicator">
+            <span class="status-dot ${isPushSubscribed ? 'online' : 'offline'}"></span>
+            <span class="status-text">${isPushSubscribed ? '✅ Notifications Push ACTIVES sur cet appareil' : '⚪ Notifications Push NON activées sur cet appareil'}</span>
+          </div>
+
+          <div class="push-buttons-row">
+            <button type="button" class="btn btn-primary-gradient" onclick="subscribeDeviceToWebPush()">
+              <span>🔔</span>
+              <span>${isPushSubscribed ? 'Réactiver / Synchroniser ce téléphone' : 'Activer les notifications sur ce téléphone'}</span>
+            </button>
+            <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('webpush')">
+              <span>🧪</span>
+              <span>Tester la notification push</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ntfy.sh Instant Mobile Push (NO ACCOUNT / NO BOT) -->
+      <div class="settings-card">
+        <div class="settings-card-title">
+          <span class="sc-icon">🔔</span>
+          <h3>2. Alertes sur Application Mobile Dédiée (ntfy.sh)</h3>
+        </div>
+        <p class="sc-desc">
+          Téléchargez l'application gratuite <strong>ntfy</strong> (disponible sur <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">iPhone (App Store)</a> et <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">Android (Google Play)</a>). Entrez simplement votre nom de canal privé pour recevoir les alertes instantanées avec son et vibration !
+        </p>
 
         <form onsubmit="saveNotificationSettings(event)" class="settings-form">
-          
-          <div class="telegram-section">
-            <h4 class="sub-section-title">✈️ Bot Telegram</h4>
-            
-            <div class="form-group">
-              <label>Token du Bot Telegram</label>
-              <input type="text" id="set-telegram-token" class="modal-input" placeholder="Ex: 123456789:ABCdefGhIJKlmNoPQRstuVWXyz" value="${appSettings.telegram_bot_token || ''}" />
-              <span class="form-hint">Obtenez un bot gratuit en 1 min via @BotFather sur Telegram.</span>
+          <div class="form-group">
+            <label>Nom de votre canal privé ntfy *</label>
+            <div class="ntfy-input-group">
+              <span class="ntfy-prefix">ntfy.sh/</span>
+              <input type="text" id="set-ntfy-topic" class="modal-input" placeholder="betclic-micha-alertes" value="${appSettings.ntfy_topic || 'betclic-micha-alertes'}" required />
             </div>
-
-            <div class="form-group">
-              <label>Votre Chat ID Telegram</label>
-              <input type="text" id="set-telegram-chatid" class="modal-input" placeholder="Ex: 987654321" value="${appSettings.telegram_chat_id || ''}" />
-              <span class="form-hint">Trouvez votre ID en envoyant un message à @userinfobot sur Telegram.</span>
-            </div>
-
-            <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('telegram')">
-              <span>✈️</span>
-              <span>Tester la notification Telegram</span>
-            </button>
+            <span class="form-hint">Dans l'application ntfy sur votre téléphone, cliquez sur ➕ et abonnez-vous à ce même nom de canal.</span>
           </div>
 
-          <hr class="settings-divider" />
+          <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('ntfy')">
+            <span>🚀</span>
+            <span>Tester l'envoi vers mon application mobile ntfy</span>
+          </button>
+        </form>
+      </div>
 
-          <div class="discord-section">
-            <h4 class="sub-section-title">🎮 Webhook Discord (Optionnel)</h4>
-            <div class="form-group">
-              <label>URL du Webhook Discord</label>
-              <input type="url" id="set-discord-webhook" class="modal-input" placeholder="https://discord.com/api/webhooks/..." value="${appSettings.discord_webhook_url || ''}" />
-            </div>
+      <!-- Email Notifications -->
+      <div class="settings-card">
+        <div class="settings-card-title">
+          <span class="sc-icon">📧</span>
+          <h3>3. Alertes par Email (Push Mail sur Smartphone)</h3>
+        </div>
+        <p class="sc-desc">Recevez un résumé complet par email pour chaque cote en chute ou pari soldé.</p>
 
-            <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('discord')">
-              <span>🎮</span>
-              <span>Tester la notification Discord</span>
-            </button>
+        <form onsubmit="saveNotificationSettings(event)" class="settings-form">
+          <div class="form-group">
+            <label>Votre Adresse Email de Réception</label>
+            <input type="email" id="set-email-recipient" class="modal-input" placeholder="mon-adresse@gmail.com" value="${appSettings.email_recipient || ''}" />
+            <span class="form-hint">Vous recevrez les notifications push de votre messagerie directement sur votre smartphone.</span>
           </div>
 
-          <hr class="settings-divider" />
-
-          <div class="email-section">
-            <h4 class="sub-section-title">📧 Notifications Email & Téléphone (Smartphone)</h4>
-            <p class="sc-desc" style="margin-bottom: 12px; font-size: 0.85rem;">
-              Recevez vos alertes de cotes en chute, compositions officielles et résultats de paris directement par notification push mail sur votre smartphone.
-            </p>
-
-            <div class="form-group">
-              <label>Votre Adresse Email de Réception *</label>
-              <input type="email" id="set-email-recipient" class="modal-input" placeholder="mon-adresse@gmail.com" value="${appSettings.email_recipient || ''}" />
-              <span class="form-hint">L'email sur lequel vous avez vos notifications activées sur votre smartphone.</span>
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label>Serveur SMTP</label>
+              <input type="text" id="set-smtp-host" class="modal-input" placeholder="smtp.gmail.com" value="${appSettings.smtp_host || ''}" />
             </div>
-
-            <div class="form-row">
-              <div class="form-group flex-2">
-                <label>Serveur SMTP</label>
-                <input type="text" id="set-smtp-host" class="modal-input" placeholder="smtp.gmail.com" value="${appSettings.smtp_host || ''}" />
-              </div>
-              <div class="form-group flex-1">
-                <label>Port SMTP</label>
-                <input type="number" id="set-smtp-port" class="modal-input" placeholder="587" value="${appSettings.smtp_port || 587}" />
-              </div>
+            <div class="form-group flex-1">
+              <label>Port SMTP</label>
+              <input type="number" id="set-smtp-port" class="modal-input" placeholder="587" value="${appSettings.smtp_port || 587}" />
             </div>
-
-            <div class="form-row">
-              <div class="form-group flex-1">
-                <label>Utilisateur / Email SMTP</label>
-                <input type="text" id="set-smtp-user" class="modal-input" placeholder="mon-compte@gmail.com" value="${appSettings.smtp_user || ''}" />
-              </div>
-              <div class="form-group flex-1">
-                <label>Mot de passe / App Password</label>
-                <input type="password" id="set-smtp-pass" class="modal-input" placeholder="••••••••••••" value="${appSettings.smtp_pass || ''}" />
-              </div>
-            </div>
-
-            <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('email')">
-              <span>📧</span>
-              <span>Tester l'envoi d'Email</span>
-            </button>
           </div>
 
-          <hr class="settings-divider" />
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Utilisateur SMTP</label>
+              <input type="text" id="set-smtp-user" class="modal-input" placeholder="mon-compte@gmail.com" value="${appSettings.smtp_user || ''}" />
+            </div>
+            <div class="form-group flex-1">
+              <label>Mot de passe SMTP / App Password</label>
+              <input type="password" id="set-smtp-pass" class="modal-input" placeholder="••••••••••••" value="${appSettings.smtp_pass || ''}" />
+            </div>
+          </div>
 
+          <button type="button" class="btn btn-test-channel" onclick="testNotificationChannel('email')">
+            <span>📧</span>
+            <span>Tester l'envoi d'Email</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Event Toggles & Preferences -->
+      <div class="settings-card">
+        <div class="settings-card-title">
+          <span class="sc-icon">🔔</span>
+          <h3>Événements & Détecteurs à Notifier</h3>
+        </div>
+        <p class="sc-desc">Choisissez les types d'alertes à envoyer automatiquement sur votre téléphone 24h/24.</p>
+
+        <form onsubmit="saveNotificationSettings(event)" class="settings-form">
           <div class="toggles-section">
-            <h4 class="sub-section-title">🔔 Événements & Détecteurs Automatiques</h4>
-            
-            <label class="setting-toggle-item">
-              <input type="checkbox" id="set-notify-vb" ${appSettings.notify_value_bets !== 0 ? 'checked' : ''} />
-              <span class="toggle-custom"></span>
-              <span class="toggle-label">💎 Alerte immédiate quand un <strong>Value Bet (+10% EV)</strong> est détecté</span>
-            </label>
-
-            <label class="setting-toggle-item">
-              <input type="checkbox" id="set-notify-comb" ${appSettings.notify_combineds !== 0 ? 'checked' : ''} />
-              <span class="toggle-custom"></span>
-              <span class="toggle-label">⚡ Alerte quand un <strong>nouveau Combiné du Jour</strong> est généré</span>
-            </label>
-
             <label class="setting-toggle-item">
               <input type="checkbox" id="set-notify-drop" ${appSettings.notify_dropping_odds !== 0 ? 'checked' : ''} />
               <span class="toggle-custom"></span>
-              <span class="toggle-label">📉 Détecteur de <strong>Cotes en Chute / Smart Money</strong> (baisse soudaine &gt;= 7%)</span>
+              <span class="toggle-label">📉 Détecteur de <strong>Cotes en Chute / Smart Money</strong> (alerte baisse soudaine &gt;= 7%)</span>
             </label>
 
             <label class="setting-toggle-item">
               <input type="checkbox" id="set-notify-settle" ${appSettings.notify_settlements !== 0 ? 'checked' : ''} />
               <span class="toggle-custom"></span>
-              <span class="toggle-label">🎯 Résolution automatique : Alerte quand un <strong>pari est soldé (Gagné / Perdu)</strong></span>
+              <span class="toggle-label">⚡ Résolution automatique : Alerte quand un <strong>pari est soldé (Gagné / Perdu)</strong></span>
             </label>
 
             <label class="setting-toggle-item">
@@ -203,11 +236,23 @@ function renderSettingsPage() {
               <span class="toggle-custom"></span>
               <span class="toggle-label">📋 Mode <strong>Compos d'équipes officielles (H-1)</strong> : Réévaluation IA 1h avant coup d'envoi</span>
             </label>
+
+            <label class="setting-toggle-item">
+              <input type="checkbox" id="set-notify-vb" ${appSettings.notify_value_bets !== 0 ? 'checked' : ''} />
+              <span class="toggle-custom"></span>
+              <span class="toggle-label">💎 Alerte quand une <strong>Pépite Value Bet (+10% EV)</strong> est détectée</span>
+            </label>
+
+            <label class="setting-toggle-item">
+              <input type="checkbox" id="set-notify-comb" ${appSettings.notify_combineds !== 0 ? 'checked' : ''} />
+              <span class="toggle-custom"></span>
+              <span class="toggle-label">⚡ Alerte quand un <strong>nouveau Combiné du Jour</strong> est généré</span>
+            </label>
           </div>
 
           <button type="submit" class="btn btn-save-settings">
             <span>💾</span>
-            <span>Enregistrer les Alertes & Détecteurs</span>
+            <span>Enregistrer mes Préférences d'Alertes</span>
           </button>
         </form>
       </div>
@@ -246,44 +291,40 @@ async function saveBankrollSettings(e) {
 
 async function saveNotificationSettings(e) {
   if (e && e.preventDefault) e.preventDefault();
-  const token = document.getElementById('set-telegram-token')?.value?.trim();
-  const chatId = document.getElementById('set-telegram-chatid')?.value?.trim();
-  const webhook = document.getElementById('set-discord-webhook')?.value?.trim();
+  const ntfyTopic = document.getElementById('set-ntfy-topic')?.value?.trim();
   const emailRecipient = document.getElementById('set-email-recipient')?.value?.trim();
   const smtpHost = document.getElementById('set-smtp-host')?.value?.trim();
   const smtpPort = parseInt(document.getElementById('set-smtp-port')?.value || 587, 10);
   const smtpUser = document.getElementById('set-smtp-user')?.value?.trim();
   const smtpPass = document.getElementById('set-smtp-pass')?.value?.trim();
 
-  const notifyVb = document.getElementById('set-notify-vb')?.checked;
-  const notifyComb = document.getElementById('set-notify-comb')?.checked;
   const notifyDrop = document.getElementById('set-notify-drop')?.checked;
   const notifySettle = document.getElementById('set-notify-settle')?.checked;
   const notifyLineup = document.getElementById('set-notify-lineup')?.checked;
+  const notifyVb = document.getElementById('set-notify-vb')?.checked;
+  const notifyComb = document.getElementById('set-notify-comb')?.checked;
 
   try {
     const res = await fetch(`${API}/bankroll/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        telegram_bot_token: token,
-        telegram_chat_id: chatId,
-        discord_webhook_url: webhook,
+        ntfy_topic: ntfyTopic,
         email_recipient: emailRecipient,
         smtp_host: smtpHost,
         smtp_port: smtpPort,
         smtp_user: smtpUser,
         smtp_pass: smtpPass,
-        notify_value_bets: notifyVb,
-        notify_combineds: notifyComb,
         notify_dropping_odds: notifyDrop,
         notify_settlements: notifySettle,
-        notify_lineups: notifyLineup
+        notify_lineups: notifyLineup,
+        notify_value_bets: notifyVb,
+        notify_combineds: notifyComb
       })
     });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ Paramètres d\'alertes et détecteurs enregistrés !', 'success');
+      showToast('✅ Paramètres d\'alertes mobiles enregistrés !', 'success');
     } else {
       showToast(`Erreur: ${data.error}`, 'error');
     }
@@ -292,11 +333,69 @@ async function saveNotificationSettings(e) {
   }
 }
 
+async function subscribeDeviceToWebPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showToast('❌ Le Web Push n\'est pas supporté par ce navigateur', 'error');
+    return;
+  }
+
+  try {
+    showToast('Demande d\'autorisation des notifications push...', 'info');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('❌ Permission refusée. Activez les notifications dans votre navigateur.', 'warn');
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    const keyRes = await fetch(`${API}/push/public-key`);
+    const keyData = await keyRes.json();
+    if (!keyData.success || !keyData.publicKey) {
+      throw new Error('Impossible de récupérer la clé VAPID du serveur');
+    }
+
+    const applicationServerKey = urlBase64ToUint8Array(keyData.publicKey);
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey
+    });
+
+    const subRes = await fetch(`${API}/push/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription, userAgent: navigator.userAgent })
+    });
+    const subResult = await subRes.json();
+
+    if (subResult.success) {
+      isPushSubscribed = true;
+      showToast('🎉 Notifications push activées sur ce téléphone !', 'success');
+      renderSettingsPage();
+    } else {
+      showToast(`Erreur: ${subResult.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('Push subscribe error:', err);
+    showToast(`Erreur activation push: ${err.message}`, 'error');
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 async function testNotificationChannel(type) {
   showToast(`Test d'envoi d'alerte ${type}...`, 'info');
-  const token = document.getElementById('set-telegram-token')?.value?.trim();
-  const chatId = document.getElementById('set-telegram-chatid')?.value?.trim();
-  const webhookUrl = document.getElementById('set-discord-webhook')?.value?.trim();
+  const ntfyTopic = document.getElementById('set-ntfy-topic')?.value?.trim();
   const recipient = document.getElementById('set-email-recipient')?.value?.trim();
   const host = document.getElementById('set-smtp-host')?.value?.trim();
   const port = document.getElementById('set-smtp-port')?.value?.trim();
@@ -307,11 +406,11 @@ async function testNotificationChannel(type) {
     const res = await fetch(`${API}/notifications/test`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, token, chatId, webhookUrl, recipient, host, port, user, pass })
+      body: JSON.stringify({ type, ntfyTopic, recipient, host, port, user, pass })
     });
     const data = await res.json();
     if (data.success) {
-      showToast('🎉 Notification envoyée avec succès ! Regardez votre messagerie.', 'success');
+      showToast('🎉 Notification envoyée avec succès ! Regardez votre smartphone.', 'success');
     } else {
       showToast(`❌ Échec : ${data.error}`, 'error');
     }

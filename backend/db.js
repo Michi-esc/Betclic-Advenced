@@ -215,6 +215,7 @@ const newBankrollCols = [
   { name: 'notify_dropping_odds', type: 'INTEGER DEFAULT 1' },
   { name: 'notify_settlements', type: 'INTEGER DEFAULT 1' },
   { name: 'notify_lineups', type: 'INTEGER DEFAULT 1' },
+  { name: 'ntfy_topic', type: 'TEXT' },
 ];
 
 for (const col of newBankrollCols) {
@@ -223,6 +224,18 @@ for (const col of newBankrollCols) {
     console.log(`✅ Added column bankroll_settings.${col.name}`);
   }
 }
+
+// Push Subscriptions table for Direct Web Push notifications on phone / browser
+db.exec(`
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    endpoint TEXT UNIQUE NOT NULL,
+    keys_p256dh TEXT NOT NULL,
+    keys_auth TEXT NOT NULL,
+    user_agent TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
 
 console.log('✅ Database initialized at:', DB_PATH);
 

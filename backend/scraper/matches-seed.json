@@ -85,8 +85,8 @@
     "match_date": "2026-09-30",
     "match_time": "04:00",
     "venue": "Gr. League B, Group D, J2",
-    "odds_home": 2.83,
-    "odds_draw": 3.25,
+    "odds_home": 2.7,
+    "odds_draw": 3.1,
     "odds_away": 2.13
   },
   {
@@ -255,8 +255,8 @@
     "match_time": "21:00",
     "venue": "Gr. B, J11",
     "odds_home": 1.01,
-    "odds_draw": 16.75,
-    "odds_away": 16.75
+    "odds_draw": 13.5,
+    "odds_away": 21
   },
   {
     "betclic_id": "bc_1234980498857984",
@@ -315,17 +315,17 @@
     "odds_away": 19.5
   },
   {
-    "betclic_id": "bc_1234381411749920",
+    "betclic_id": "bc_1235350456389632",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
-    "home_team": "Grèce",
-    "away_team": "Pays-Bas",
+    "home_team": "Pays de Galles",
+    "away_team": "Norvège",
     "match_date": "2026-10-01",
     "match_time": "20:45",
-    "venue": "Gr. A2, J3",
-    "odds_home": 3.1,
-    "odds_draw": 3.58,
-    "odds_away": 2.07
+    "venue": "Gr. A4, J3",
+    "odds_home": 5.6,
+    "odds_draw": 4.35,
+    "odds_away": 1.48
   },
   {
     "betclic_id": "bc_1235350418649088",
@@ -341,30 +341,30 @@
     "odds_away": 2
   },
   {
-    "betclic_id": "bc_1235350456389632",
+    "betclic_id": "bc_1237336047251456",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
-    "home_team": "Pays de Galles",
-    "away_team": "Norvège",
+    "home_team": "Malte",
+    "away_team": "Gibraltar",
     "match_date": "2026-10-01",
     "match_time": "20:45",
-    "venue": "Gr. A4, J3",
-    "odds_home": 5.6,
-    "odds_draw": 4.35,
-    "odds_away": 1.48
+    "venue": "Gr. D1, J3",
+    "odds_home": 1.25,
+    "odds_draw": 4.95,
+    "odds_away": 11
   },
   {
-    "betclic_id": "bc_1235350604255232",
+    "betclic_id": "bc_1234381411749920",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
-    "home_team": "Allemagne",
-    "away_team": "Serbie",
+    "home_team": "Grèce",
+    "away_team": "Pays-Bas",
     "match_date": "2026-10-01",
     "match_time": "20:45",
     "venue": "Gr. A2, J3",
-    "odds_home": 1.22,
-    "odds_draw": 6.1,
-    "odds_away": 9.5
+    "odds_home": 3.1,
+    "odds_draw": 3.58,
+    "odds_away": 2.07
   },
   {
     "betclic_id": "bc_1236004343144448",
@@ -380,6 +380,19 @@
     "odds_away": 2.17
   },
   {
+    "betclic_id": "bc_1235350604255232",
+    "competition": "Ligue des Nations UEFA",
+    "competition_country": "Europe",
+    "home_team": "Allemagne",
+    "away_team": "Serbie",
+    "match_date": "2026-10-01",
+    "match_time": "20:45",
+    "venue": "Gr. A2, J3",
+    "odds_home": 1.22,
+    "odds_draw": 6.1,
+    "odds_away": 9.5
+  },
+  {
     "betclic_id": "bc_1236004790894592",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
@@ -391,19 +404,6 @@
     "odds_home": 3.28,
     "odds_draw": 3.18,
     "odds_away": 2.1
-  },
-  {
-    "betclic_id": "bc_1237336047251456",
-    "competition": "Ligue des Nations UEFA",
-    "competition_country": "Europe",
-    "home_team": "Malte",
-    "away_team": "Gibraltar",
-    "match_date": "2026-10-01",
-    "match_time": "20:45",
-    "venue": "Gr. D1, J3",
-    "odds_home": 1.25,
-    "odds_draw": 4.95,
-    "odds_away": 11
   },
   {
     "id": 174,
@@ -543,9 +543,9 @@
     "match_date": "2026-10-02",
     "match_time": "20:45",
     "venue": "Gr. A1, J3",
-    "odds_home": 1.43,
-    "odds_draw": 4.6,
-    "odds_away": 5.4
+    "odds_home": 1.45,
+    "odds_draw": 4.55,
+    "odds_away": 5.25
   },
   {
     "betclic_id": "bc_1238811523686400",
@@ -660,6 +660,19 @@
     "odds_away": 19
   },
   {
+    "betclic_id": "bc_1238778779811840",
+    "competition": "Ligue des Nations UEFA",
+    "competition_country": "Europe",
+    "home_team": "Espagne",
+    "away_team": "Tchéquie",
+    "match_date": "2026-10-03",
+    "match_time": "20:45",
+    "venue": "Gr. A3, J3",
+    "odds_home": 1.11,
+    "odds_draw": 7.25,
+    "odds_away": 15.75
+  },
+  {
     "id": 176,
     "betclic_id": "bc_1229932807090176",
     "competition": "Ligue des Nations UEFA",
@@ -675,23 +688,6 @@
     "status": "upcoming",
     "scraped_at": "2026-09-29 04:01:10",
     "updated_at": "2026-09-29 16:00:07"
-  },
-  {
-    "id": 609,
-    "betclic_id": "bc_1238778779811840",
-    "competition": "Ligue des Nations UEFA",
-    "competition_country": "Europe",
-    "home_team": "Espagne",
-    "away_team": "Tchéquie",
-    "match_date": "2026-10-03",
-    "match_time": "20:45",
-    "venue": "Gr. A3, J3",
-    "odds_home": 1.11,
-    "odds_draw": 7.25,
-    "odds_away": 15.75,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 10:00:09",
-    "updated_at": "2026-09-30 01:01:14"
   },
   {
     "id": 160,
@@ -1184,19 +1180,6 @@
     "odds_away": 4.05
   },
   {
-    "betclic_id": "bc_1227191616569344",
-    "competition": "Bundesliga",
-    "competition_country": "Allemagne",
-    "home_team": "RB Leipzig",
-    "away_team": "Eintracht Francfort",
-    "match_date": "2026-10-10",
-    "match_time": "18:30",
-    "venue": "J5",
-    "odds_home": 1.49,
-    "odds_draw": 4.6,
-    "odds_away": 4.7
-  },
-  {
     "betclic_id": "bc_1228048091340800",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1208,6 +1191,19 @@
     "odds_home": 1.04,
     "odds_draw": 10,
     "odds_away": 24
+  },
+  {
+    "betclic_id": "bc_1227191616569344",
+    "competition": "Bundesliga",
+    "competition_country": "Allemagne",
+    "home_team": "RB Leipzig",
+    "away_team": "Eintracht Francfort",
+    "match_date": "2026-10-10",
+    "match_time": "18:30",
+    "venue": "J5",
+    "odds_home": 1.49,
+    "odds_draw": 4.6,
+    "odds_away": 4.7
   },
   {
     "betclic_id": "bc_1227191238021120",
@@ -1699,19 +1695,6 @@
     "odds_away": 3.12
   },
   {
-    "betclic_id": "bc_1230834385309696",
-    "competition": "Bundesliga",
-    "competition_country": "Allemagne",
-    "home_team": "Bayern Munich",
-    "away_team": "RB Leipzig",
-    "match_date": "2026-10-17",
-    "match_time": "18:30",
-    "venue": "J6",
-    "odds_home": 1.2,
-    "odds_draw": 6.4,
-    "odds_away": 7.5
-  },
-  {
     "betclic_id": "bc_1231457852887040",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1723,6 +1706,19 @@
     "odds_home": 4.85,
     "odds_draw": 4.8,
     "odds_away": 1.42
+  },
+  {
+    "betclic_id": "bc_1230834385309696",
+    "competition": "Bundesliga",
+    "competition_country": "Allemagne",
+    "home_team": "Bayern Munich",
+    "away_team": "RB Leipzig",
+    "match_date": "2026-10-17",
+    "match_time": "18:30",
+    "venue": "J6",
+    "odds_home": 1.2,
+    "odds_draw": 6.4,
+    "odds_away": 7.5
   },
   {
     "betclic_id": "bc_1230957595099136",
