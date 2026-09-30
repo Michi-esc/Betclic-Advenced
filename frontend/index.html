@@ -95,7 +95,9 @@
           <div class="filter-group sort-group">
             <label class="filter-label">Trier</label>
             <select class="filter-select" id="sort-select" onchange="setSorting(this.value)">
-              <option value="date">Date & Heure</option>
+              <option value="date" selected>⏰ Chronologique (Plus proches d'abord)</option>
+              <option value="date_desc">🕒 Chronologique (Plus lointains d'abord)</option>
+              <option value="ai_conf">🧠 Confiance IA (Décroissante)</option>
               <option value="odds_home">Cote Domicile</option>
               <option value="odds_away">Cote Extérieur</option>
               <option value="competition">Compétition</option>
@@ -109,18 +111,22 @@
       </div>
     </div>
 
-    <!-- Quick Filters Bar (Value Bets, Matchs du Jour, Analysés, Guide) -->
+    <!-- Quick Filters Bar (Value Bets, Matchs du Jour, Analysés, Guide, Chrono) -->
     <div class="quick-filters-row">
       <button class="quick-filter-chip active" data-qf="all" onclick="setQuickFilter('all')">
         <span>🌟</span>
         <span>Tous les matchs</span>
+      </button>
+      <button class="quick-filter-chip chrono-chip" id="quick-chrono-btn" onclick="toggleChronoSort()">
+        <span>⏰</span>
+        <span>Tri Chronologique</span>
       </button>
       <button class="quick-filter-chip value-chip" data-qf="value" onclick="setQuickFilter('value')">
         <span>💎</span>
         <span>Value Bets (EV+)</span>
       </button>
       <button class="quick-filter-chip today-chip" data-qf="today" onclick="setQuickFilter('today')">
-        <span>⏰</span>
+        <span>📅</span>
         <span>Matchs d'Aujourd'hui</span>
       </button>
       <button class="quick-filter-chip" data-qf="analyzed" onclick="setQuickFilter('analyzed')">

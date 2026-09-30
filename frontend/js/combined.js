@@ -433,14 +433,20 @@ function renderBuilderSectionContent() {
         <div class="toolbar-left">
           <div class="toolbar-group">
             <label class="toolbar-label">🎯 Trier par</label>
-            <select class="toolbar-select" onchange="setBuilderSort(this.value)">
-              <option value="success_desc" ${builderState.sortBy === 'success_desc' ? 'selected' : ''}>🎯 Chance de réussite (Décroissante : 90% → 40%)</option>
-              <option value="success_asc" ${builderState.sortBy === 'success_asc' ? 'selected' : ''}>📉 Chance de réussite (Croissante : 40% → 90%)</option>
-              <option value="odds_asc" ${builderState.sortBy === 'odds_asc' ? 'selected' : ''}>📈 Cotes les plus basses (1.15 → 3.50)</option>
-              <option value="odds_desc" ${builderState.sortBy === 'odds_desc' ? 'selected' : ''}>💰 Cotes les plus hautes (3.50 → 1.15)</option>
-              <option value="date_asc" ${builderState.sortBy === 'date_asc' ? 'selected' : ''}>⏰ Coup d'envoi (Chronologique pour Cashout)</option>
-              <option value="ev_desc" ${builderState.sortBy === 'ev_desc' ? 'selected' : ''}>💎 Meilleure Valeur (Value Bet EV+)</option>
-            </select>
+            <div class="sort-action-row">
+              <select class="toolbar-select" id="builder-sort-select" onchange="setBuilderSort(this.value)">
+                <option value="date_asc" ${builderState.sortBy === 'date_asc' ? 'selected' : ''}>⏰ Chronologique (Plus proches d'abord)</option>
+                <option value="date_desc" ${builderState.sortBy === 'date_desc' ? 'selected' : ''}>🕒 Chronologique (Plus lointains d'abord)</option>
+                <option value="success_desc" ${builderState.sortBy === 'success_desc' ? 'selected' : ''}>🎯 Chance de réussite (Décroissante : 90% → 40%)</option>
+                <option value="success_asc" ${builderState.sortBy === 'success_asc' ? 'selected' : ''}>📉 Chance de réussite (Croissante : 40% → 90%)</option>
+                <option value="odds_asc" ${builderState.sortBy === 'odds_asc' ? 'selected' : ''}>📈 Cotes les plus basses (1.15 → 3.50)</option>
+                <option value="odds_desc" ${builderState.sortBy === 'odds_desc' ? 'selected' : ''}>💰 Cotes les plus hautes (3.50 → 1.15)</option>
+                <option value="ev_desc" ${builderState.sortBy === 'ev_desc' ? 'selected' : ''}>💎 Meilleure Valeur (Value Bet EV+)</option>
+              </select>
+              <button class="btn-builder-chrono ${builderState.sortBy.startsWith('date') ? 'active' : ''}" onclick="toggleBuilderChronoSort()" title="Basculer le tri chronologique par date et heure">
+                <span>⏰</span> <span>Chronologique</span>
+              </button>
+            </div>
           </div>
 
           <div class="toolbar-group">
@@ -822,9 +828,14 @@ function sortCatalogs(catalogs) {
 
   catalogs.sort((a, b) => {
     if (sortBy === 'date_asc') {
-      const dateA = `${a.match.match_date} ${a.match.match_time}`;
-      const dateB = `${b.match.match_date} ${b.match.match_time}`;
+      const dateA = `${a.match.match_date || ''} ${a.match.match_time || '00:00'}`;
+      const dateB = `${b.match.match_date || ''} ${b.match.match_time || '00:00'}`;
       return dateA.localeCompare(dateB);
+    }
+    if (sortBy === 'date_desc') {
+      const dateA = `${a.match.match_date || ''} ${a.match.match_time || '00:00'}`;
+      const dateB = `${b.match.match_date || ''} ${b.match.match_time || '00:00'}`;
+      return dateB.localeCompare(dateA);
     }
 
     const maxProbA = a.bets.length > 0 ? Math.max(...a.bets.map(x => x.probability)) : 0;
@@ -1008,9 +1019,14 @@ function renderDirectCatalog(catalogs) {
     if (sortBy === 'odds_asc') return a.odds - b.odds;
     if (sortBy === 'odds_desc') return b.odds - a.odds;
     if (sortBy === 'date_asc') {
-      const dA = `${a.match_date} ${a.match_time}`;
-      const dB = `${b.match_date} ${b.match_time}`;
+      const dA = `${a.match_date || ''} ${a.match_time || '00:00'}`;
+      const dB = `${b.match_date || ''} ${b.match_time || '00:00'}`;
       return dA.localeCompare(dB);
+    }
+    if (sortBy === 'date_desc') {
+      const dA = `${a.match_date || ''} ${a.match_time || '00:00'}`;
+      const dB = `${b.match_date || ''} ${b.match_time || '00:00'}`;
+      return dB.localeCompare(dA);
     }
     if (sortBy === 'ev_desc') {
       return (b.isValueBet ? 1 : 0) - (a.isValueBet ? 1 : 0);
@@ -1268,6 +1284,17 @@ function setBuilderRiskFilter(filter) {
 
 function setBuilderSort(sort) {
   builderState.sortBy = sort;
+  renderBuilderSectionContent();
+}
+
+function toggleBuilderChronoSort() {
+  if (builderState.sortBy === 'date_asc') {
+    builderState.sortBy = 'date_desc';
+    showToast('🕒 Tri chronologique : Matchs les plus lointains d\'abord', 'info');
+  } else {
+    builderState.sortBy = 'date_asc';
+    showToast('⏰ Tri chronologique : Coups d\'envoi les plus proches d\'abord', 'success');
+  }
   renderBuilderSectionContent();
 }
 

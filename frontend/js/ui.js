@@ -12,6 +12,23 @@ function setQuickFilter(qf) {
   renderMatches();
 }
 
+function toggleChronoSort() {
+  const select = document.getElementById('sort-select');
+  const btn = document.getElementById('quick-chrono-btn');
+  if (sortBy === 'date' || sortBy === 'date_asc') {
+    sortBy = 'date_desc';
+    if (select) select.value = 'date_desc';
+    if (btn) btn.classList.add('active');
+    showToast('🕒 Tri chronologique : Matchs les plus lointains d\'abord', 'info');
+  } else {
+    sortBy = 'date_asc';
+    if (select) select.value = 'date';
+    if (btn) btn.classList.add('active');
+    showToast('⏰ Tri chronologique : Coups d\'envoi les plus proches d\'abord', 'success');
+  }
+  renderMatches();
+}
+
 function renderMatches() {
   const grid = document.getElementById('matches-grid');
   const emptyState = document.getElementById('empty-state');
@@ -55,12 +72,24 @@ function renderMatches() {
 
   // 4. Sort
   filtered.sort((a, b) => {
-    if (sortBy === 'date') {
-      return (a.match_date + a.match_time).localeCompare(b.match_date + b.match_time);
+    if (sortBy === 'date' || sortBy === 'date_asc') {
+      const dtA = (a.match_date || '') + ' ' + (a.match_time || '00:00');
+      const dtB = (b.match_date || '') + ' ' + (b.match_time || '00:00');
+      return dtA.localeCompare(dtB);
+    }
+    if (sortBy === 'date_desc') {
+      const dtA = (a.match_date || '') + ' ' + (a.match_time || '00:00');
+      const dtB = (b.match_date || '') + ' ' + (b.match_time || '00:00');
+      return dtB.localeCompare(dtA);
+    }
+    if (sortBy === 'ai_conf') {
+      const cA = parseInt(a.ai_confidence) || 0;
+      const cB = parseInt(b.ai_confidence) || 0;
+      return cB - cA;
     }
     if (sortBy === 'odds_home') return (a.odds_home || 99) - (b.odds_home || 99);
     if (sortBy === 'odds_away') return (a.odds_away || 99) - (b.odds_away || 99);
-    if (sortBy === 'competition') return a.competition.localeCompare(b.competition);
+    if (sortBy === 'competition') return (a.competition || '').localeCompare(b.competition || '');
     return 0;
   });
 
