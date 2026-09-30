@@ -91,8 +91,23 @@ function renderMatchCard(match) {
   const hasValueBet = Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0;
   const topVb = hasValueBet ? raw.value_bets_structured[0] : null;
 
+  // Dropping Odds / Smart Money detection
+  const maxDrop = Math.max(match.odds_drop_home || 0, match.odds_drop_away || 0, match.odds_drop_draw || 0);
+  const hasDroppingOdds = maxDrop >= 7;
+
+  // Lineup H-1 status
+  const isLineupConfirmed = match.lineup_status === 'confirmed';
+  let lineupData = null;
+  if (isLineupConfirmed && match.lineup_data) {
+    try { lineupData = typeof match.lineup_data === 'string' ? JSON.parse(match.lineup_data) : match.lineup_data; } catch (_) {}
+  }
+
+  // Final score if match finished
+  const hasFinalScore = match.score_home !== null && match.score_home !== undefined &&
+                        match.score_away !== null && match.score_away !== undefined;
+
   return `
-    <div class="match-card ${isAnalyzed ? 'analyzed' : ''} ${hasValueBet ? 'has-value-bet' : ''}" 
+    <div class="match-card ${isAnalyzed ? 'analyzed' : ''} ${hasValueBet ? 'has-value-bet' : ''} ${hasDroppingOdds ? 'has-dropping-odds' : ''}" 
          id="card-${match.id}" 
          onclick="openModal(${match.id})" 
          style="cursor: pointer;">
@@ -102,7 +117,10 @@ function renderMatchCard(match) {
           <span class="competition-name">${escapeHtml(match.competition)}</span>
         </div>
         <div class="match-datetime">
-          ${isToday ? `<span class="badge-today">⏰ Aujourd'hui</span>` : ''}
+          ${hasFinalScore ? `<span class="badge-final-score">🏁 ${match.score_home}-${match.score_away}</span>` : ''}
+          ${hasDroppingOdds ? `<span class="badge-drop-pulse">📉 -${maxDrop}% COTE</span>` : ''}
+          ${isLineupConfirmed ? `<span class="badge-lineup-confirmed" title="11 titulaires officiels confirmés">📋 Compos H-1</span>` : ''}
+          ${isToday && !hasFinalScore ? `<span class="badge-today">⏰ Aujourd'hui</span>` : ''}
           ${hasValueBet ? `<span class="badge-value-pulse">💎 VALUE (${escapeHtml(topVb.value_edge)})</span>` : ''}
           <span class="match-date-text">${dateFormatted}</span>
           <span class="match-time-text">${match.match_time || '—'}</span>
@@ -125,22 +143,31 @@ function renderMatchCard(match) {
       </div>
 
       <div class="card-odds">
-        <div class="odd-box" onclick="handleOddTap(${match.id}, '1', ${match.odds_home}, event)" title="${escapeHtml(match.home_team)}">
+        <div class="odd-box ${match.odds_drop_home >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '1', ${match.odds_home}, event)" title="${escapeHtml(match.home_team)}">
           <span class="odd-label">1</span>
           <span class="odd-value ${bestOdd === match.odds_home ? 'best-odd' : ''}">${match.odds_home ? match.odds_home.toFixed(2) : '—'}</span>
+          ${match.odds_drop_home >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_home}%</span>` : ''}
         </div>
-        <div class="odd-box" onclick="handleOddTap(${match.id}, 'N', ${match.odds_draw}, event)" title="Match nul">
+        <div class="odd-box ${match.odds_drop_draw >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, 'N', ${match.odds_draw}, event)" title="Match nul">
           <span class="odd-label">N</span>
           <span class="odd-value ${bestOdd === match.odds_draw ? 'best-odd' : ''}">${match.odds_draw ? match.odds_draw.toFixed(2) : '—'}</span>
+          ${match.odds_drop_draw >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_draw}%</span>` : ''}
         </div>
-        <div class="odd-box" onclick="handleOddTap(${match.id}, '2', ${match.odds_away}, event)" title="${escapeHtml(match.away_team)}">
+        <div class="odd-box ${match.odds_drop_away >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '2', ${match.odds_away}, event)" title="${escapeHtml(match.away_team)}">
           <span class="odd-label">2</span>
           <span class="odd-value ${bestOdd === match.odds_away ? 'best-odd' : ''}">${match.odds_away ? match.odds_away.toFixed(2) : '—'}</span>
+          ${match.odds_drop_away >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_away}%</span>` : ''}
         </div>
       </div>
 
       ${isAnalyzed ? (() => {
         const tags = [];
+        if (isLineupConfirmed) {
+          tags.push(`<span class="card-tag tag-lineup">📋 H-1 : ${escapeHtml(lineupData?.confidence_adjustment || 'Stars confirmées')}</span>`);
+        }
+        if (hasDroppingOdds) {
+          tags.push(`<span class="card-tag tag-drop">📉 Smart Money : Cote en chute (-${maxDrop}%)</span>`);
+        }
         if (raw.result_avoid) {
           tags.push(`<span class="card-tag tag-danger">🚫 1N2 À ÉVITER</span>`);
         } else if (raw.result_risk_level === 'élevé') {

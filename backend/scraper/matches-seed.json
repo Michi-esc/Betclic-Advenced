@@ -315,17 +315,17 @@
     "odds_away": 19.5
   },
   {
-    "betclic_id": "bc_1235350456389632",
+    "betclic_id": "bc_1234381411749920",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
-    "home_team": "Pays de Galles",
-    "away_team": "Norvège",
+    "home_team": "Grèce",
+    "away_team": "Pays-Bas",
     "match_date": "2026-10-01",
     "match_time": "20:45",
-    "venue": "Gr. A4, J3",
-    "odds_home": 5.6,
-    "odds_draw": 4.35,
-    "odds_away": 1.48
+    "venue": "Gr. A2, J3",
+    "odds_home": 3.1,
+    "odds_draw": 3.58,
+    "odds_away": 2.07
   },
   {
     "betclic_id": "bc_1235350418649088",
@@ -341,43 +341,17 @@
     "odds_away": 2
   },
   {
-    "betclic_id": "bc_1237336047251456",
+    "betclic_id": "bc_1235350456389632",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
-    "home_team": "Malte",
-    "away_team": "Gibraltar",
+    "home_team": "Pays de Galles",
+    "away_team": "Norvège",
     "match_date": "2026-10-01",
     "match_time": "20:45",
-    "venue": "Gr. D1, J3",
-    "odds_home": 1.25,
-    "odds_draw": 4.95,
-    "odds_away": 11
-  },
-  {
-    "betclic_id": "bc_1234381411749920",
-    "competition": "Ligue des Nations UEFA",
-    "competition_country": "Europe",
-    "home_team": "Grèce",
-    "away_team": "Pays-Bas",
-    "match_date": "2026-10-01",
-    "match_time": "20:45",
-    "venue": "Gr. A2, J3",
-    "odds_home": 3.1,
-    "odds_draw": 3.58,
-    "odds_away": 2.07
-  },
-  {
-    "betclic_id": "bc_1236004343144448",
-    "competition": "Ligue des Nations UEFA",
-    "competition_country": "Europe",
-    "home_team": "Israël",
-    "away_team": "Kosovo",
-    "match_date": "2026-10-01",
-    "match_time": "20:45",
-    "venue": "Gr. B3, J3",
-    "odds_home": 3.1,
-    "odds_draw": 3.32,
-    "odds_away": 2.17
+    "venue": "Gr. A4, J3",
+    "odds_home": 5.6,
+    "odds_draw": 4.35,
+    "odds_away": 1.48
   },
   {
     "betclic_id": "bc_1235350604255232",
@@ -393,6 +367,19 @@
     "odds_away": 9.5
   },
   {
+    "betclic_id": "bc_1236004343144448",
+    "competition": "Ligue des Nations UEFA",
+    "competition_country": "Europe",
+    "home_team": "Israël",
+    "away_team": "Kosovo",
+    "match_date": "2026-10-01",
+    "match_time": "20:45",
+    "venue": "Gr. B3, J3",
+    "odds_home": 3.1,
+    "odds_draw": 3.32,
+    "odds_away": 2.17
+  },
+  {
     "betclic_id": "bc_1236004790894592",
     "competition": "Ligue des Nations UEFA",
     "competition_country": "Europe",
@@ -404,6 +391,19 @@
     "odds_home": 3.28,
     "odds_draw": 3.18,
     "odds_away": 2.1
+  },
+  {
+    "betclic_id": "bc_1237336047251456",
+    "competition": "Ligue des Nations UEFA",
+    "competition_country": "Europe",
+    "home_team": "Malte",
+    "away_team": "Gibraltar",
+    "match_date": "2026-10-01",
+    "match_time": "20:45",
+    "venue": "Gr. D1, J3",
+    "odds_home": 1.25,
+    "odds_draw": 4.95,
+    "odds_away": 11
   },
   {
     "id": 174,
@@ -959,7 +959,6 @@
     "odds_away": 6.5
   },
   {
-    "id": 213,
     "betclic_id": "bc_1227191222292485",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -970,10 +969,7 @@
     "venue": "J6",
     "odds_home": 2.1,
     "odds_draw": 3.58,
-    "odds_away": 2.92,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.92
   },
   {
     "betclic_id": "bc_1228048154259456",
@@ -1006,7 +1002,6 @@
     "updated_at": "2026-09-29 16:00:07"
   },
   {
-    "id": 215,
     "betclic_id": "bc_1223669415153664",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1017,10 +1012,7 @@
     "venue": "J6",
     "odds_home": 1.37,
     "odds_draw": 4.5,
-    "odds_away": 6.75,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 6.75
   },
   {
     "betclic_id": "bc_1228048251781120",
@@ -1101,7 +1093,6 @@
     "odds_away": 2.12
   },
   {
-    "id": 222,
     "betclic_id": "bc_1223669166637056",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1112,13 +1103,9 @@
     "venue": "J6",
     "odds_home": 2.63,
     "odds_draw": 3.35,
-    "odds_away": 2.37,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.37
   },
   {
-    "id": 223,
     "betclic_id": "bc_1223669276745728",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1129,13 +1116,9 @@
     "venue": "J6",
     "odds_home": 1.65,
     "odds_draw": 4,
-    "odds_away": 4.1,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.1
   },
   {
-    "id": 224,
     "betclic_id": "bc_1223669655277568",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1146,13 +1129,9 @@
     "venue": "J6",
     "odds_home": 2.83,
     "odds_draw": 3.35,
-    "odds_away": 2.23,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.23
   },
   {
-    "id": 225,
     "betclic_id": "bc_1223669689884672",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1163,10 +1142,7 @@
     "venue": "J6",
     "odds_home": 2.55,
     "odds_draw": 3.38,
-    "odds_away": 2.43,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.43
   },
   {
     "betclic_id": "bc_1228048268550144",
@@ -1182,7 +1158,6 @@
     "odds_away": 1.79
   },
   {
-    "id": 227,
     "betclic_id": "bc_1227191297802240",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1193,23 +1168,20 @@
     "venue": "J6",
     "odds_home": 1.4,
     "odds_draw": 4.4,
-    "odds_away": 6.25,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 6.25
   },
   {
-    "betclic_id": "bc_1228048091340800",
-    "competition": "LaLiga",
-    "competition_country": "Espagne",
-    "home_team": "Barcelone",
-    "away_team": "Getafe",
+    "betclic_id": "bc_1223669781114992",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Manchester United",
+    "away_team": "Tottenham",
     "match_date": "2026-10-10",
     "match_time": "18:30",
-    "venue": "J8",
-    "odds_home": 1.04,
-    "odds_draw": 10,
-    "odds_away": 24
+    "venue": "J6",
+    "odds_home": 1.67,
+    "odds_draw": 3.93,
+    "odds_away": 4.05
   },
   {
     "betclic_id": "bc_1227191616569344",
@@ -1225,21 +1197,69 @@
     "odds_away": 4.7
   },
   {
-    "id": 228,
-    "betclic_id": "bc_1223669781114992",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Manchester United",
-    "away_team": "Tottenham",
+    "betclic_id": "bc_1228048091340800",
+    "competition": "LaLiga",
+    "competition_country": "Espagne",
+    "home_team": "Barcelone",
+    "away_team": "Getafe",
     "match_date": "2026-10-10",
     "match_time": "18:30",
+    "venue": "J8",
+    "odds_home": 1.04,
+    "odds_draw": 10,
+    "odds_away": 24
+  },
+  {
+    "betclic_id": "bc_1227191238021120",
+    "competition": "Ligue 1",
+    "competition_country": "France",
+    "home_team": "Brest",
+    "away_team": "Angers",
+    "match_date": "2026-10-10",
+    "match_time": "20:45",
     "venue": "J6",
-    "odds_home": 1.67,
+    "odds_home": 1.84,
+    "odds_draw": 3.53,
+    "odds_away": 3.65
+  },
+  {
+    "betclic_id": "bc_1227191565189419",
+    "competition": "Ligue 1",
+    "competition_country": "France",
+    "home_team": "Monaco",
+    "away_team": "Toulouse",
+    "match_date": "2026-10-10",
+    "match_time": "20:45",
+    "venue": "J6",
+    "odds_home": 1.61,
     "odds_draw": 3.93,
-    "odds_away": 4.05,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.5
+  },
+  {
+    "betclic_id": "bc_1227191765454848",
+    "competition": "Ligue 1",
+    "competition_country": "France",
+    "home_team": "Lorient",
+    "away_team": "Paris FC",
+    "match_date": "2026-10-10",
+    "match_time": "20:45",
+    "venue": "J6",
+    "odds_home": 2.95,
+    "odds_draw": 3.3,
+    "odds_away": 2.18
+  },
+  {
+    "betclic_id": "bc_1227191985655808",
+    "competition": "Ligue 1",
+    "competition_country": "France",
+    "home_team": "Paris SG",
+    "away_team": "Le Mans FC",
+    "match_date": "2026-10-10",
+    "match_time": "20:45",
+    "venue": "J6",
+    "odds_home": 1.05,
+    "odds_draw": 10.25,
+    "odds_away": 21
   },
   {
     "id": 173,
@@ -1257,74 +1277,6 @@
     "status": "upcoming",
     "scraped_at": "2026-09-29 04:01:10",
     "updated_at": "2026-09-29 16:00:07"
-  },
-  {
-    "id": 231,
-    "betclic_id": "bc_1227191238021120",
-    "competition": "Ligue 1",
-    "competition_country": "France",
-    "home_team": "Brest",
-    "away_team": "Angers",
-    "match_date": "2026-10-10",
-    "match_time": "20:45",
-    "venue": "J6",
-    "odds_home": 1.84,
-    "odds_draw": 3.53,
-    "odds_away": 3.65,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
-  },
-  {
-    "id": 232,
-    "betclic_id": "bc_1227191565189419",
-    "competition": "Ligue 1",
-    "competition_country": "France",
-    "home_team": "Monaco",
-    "away_team": "Toulouse",
-    "match_date": "2026-10-10",
-    "match_time": "20:45",
-    "venue": "J6",
-    "odds_home": 1.61,
-    "odds_draw": 3.93,
-    "odds_away": 4.5,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
-  },
-  {
-    "id": 233,
-    "betclic_id": "bc_1227191765454848",
-    "competition": "Ligue 1",
-    "competition_country": "France",
-    "home_team": "Lorient",
-    "away_team": "Paris FC",
-    "match_date": "2026-10-10",
-    "match_time": "20:45",
-    "venue": "J6",
-    "odds_home": 2.95,
-    "odds_draw": 3.3,
-    "odds_away": 2.18,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
-  },
-  {
-    "id": 234,
-    "betclic_id": "bc_1227191985655808",
-    "competition": "Ligue 1",
-    "competition_country": "France",
-    "home_team": "Paris SG",
-    "away_team": "Le Mans FC",
-    "match_date": "2026-10-10",
-    "match_time": "20:45",
-    "venue": "J6",
-    "odds_home": 1.05,
-    "odds_draw": 10.25,
-    "odds_away": 21,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
   },
   {
     "betclic_id": "bc_1228048325169152",
@@ -1370,7 +1322,6 @@
     "odds_away": 2.47
   },
   {
-    "id": 237,
     "betclic_id": "bc_1227201677643776",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1381,13 +1332,9 @@
     "venue": "J6",
     "odds_home": 2.1,
     "odds_draw": 3.45,
-    "odds_away": 2.98,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.98
   },
   {
-    "id": 238,
     "betclic_id": "bc_1223669212782707",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1398,13 +1345,9 @@
     "venue": "J6",
     "odds_home": 2.48,
     "odds_draw": 3.17,
-    "odds_away": 2.62,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.62
   },
   {
-    "id": 239,
     "betclic_id": "bc_1223669466537984",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1415,10 +1358,7 @@
     "venue": "J6",
     "odds_home": 3.4,
     "odds_draw": 3.23,
-    "odds_away": 2.02,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.02
   },
   {
     "betclic_id": "bc_1227191070261258",
@@ -1447,7 +1387,6 @@
     "odds_away": 4.4
   },
   {
-    "id": 242,
     "betclic_id": "bc_1227201531891712",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1458,10 +1397,20 @@
     "venue": "J6",
     "odds_home": 1.38,
     "odds_draw": 4.75,
-    "odds_away": 6.1,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 6.1
+  },
+  {
+    "betclic_id": "bc_1223669542027264",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Liverpool",
+    "away_team": "Manchester City",
+    "match_date": "2026-10-11",
+    "match_time": "17:30",
+    "venue": "J6",
+    "odds_home": 2.55,
+    "odds_draw": 3.53,
+    "odds_away": 2.35
   },
   {
     "betclic_id": "bc_1227191486545920",
@@ -1477,23 +1426,6 @@
     "odds_away": 4.65
   },
   {
-    "id": 243,
-    "betclic_id": "bc_1223669542027264",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Liverpool",
-    "away_team": "Manchester City",
-    "match_date": "2026-10-11",
-    "match_time": "17:30",
-    "venue": "J6",
-    "odds_home": 2.55,
-    "odds_draw": 3.53,
-    "odds_away": 2.35,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
-  },
-  {
     "betclic_id": "bc_1228048288485376",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1507,7 +1439,6 @@
     "odds_away": 4.5
   },
   {
-    "id": 246,
     "betclic_id": "bc_1227201264521216",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1518,10 +1449,7 @@
     "venue": "J6",
     "odds_home": 3.75,
     "odds_draw": 3.73,
-    "odds_away": 1.77,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 1.77
   },
   {
     "betclic_id": "bc_1228049084346368",
@@ -1537,6 +1465,19 @@
     "odds_away": 2.97
   },
   {
+    "betclic_id": "bc_1223669183418369",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Coventry",
+    "away_team": "Newcastle",
+    "match_date": "2026-10-12",
+    "match_time": "21:00",
+    "venue": "J6",
+    "odds_home": 3.12,
+    "odds_draw": 3.42,
+    "odds_away": 2.05
+  },
+  {
     "betclic_id": "bc_1228049047654400",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1548,23 +1489,6 @@
     "odds_home": 2.52,
     "odds_draw": 3.17,
     "odds_away": 2.58
-  },
-  {
-    "id": 248,
-    "betclic_id": "bc_1223669183418369",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Coventry",
-    "away_team": "Newcastle",
-    "match_date": "2026-10-12",
-    "match_time": "21:00",
-    "venue": "J6",
-    "odds_home": 3.12,
-    "odds_draw": 3.42,
-    "odds_away": 2.05,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
   },
   {
     "betclic_id": "bc_1230833056763904",
@@ -1580,7 +1504,6 @@
     "odds_away": 3.12
   },
   {
-    "id": 251,
     "betclic_id": "bc_1230958199083012",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1591,10 +1514,7 @@
     "venue": "J7",
     "odds_home": 2.92,
     "odds_draw": 3.37,
-    "odds_away": 2.18,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.18
   },
   {
     "betclic_id": "bc_1231456509661184",
@@ -1610,7 +1530,6 @@
     "odds_away": 3.25
   },
   {
-    "id": 253,
     "betclic_id": "bc_1229963022864384",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1621,10 +1540,7 @@
     "venue": "J7",
     "odds_home": 2.73,
     "odds_draw": 3.45,
-    "odds_away": 2.15,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.15
   },
   {
     "betclic_id": "bc_1231457130401792",
@@ -1705,7 +1621,6 @@
     "odds_away": 1.6
   },
   {
-    "id": 260,
     "betclic_id": "bc_1229963733790720",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1716,13 +1631,9 @@
     "venue": "J7",
     "odds_home": 2.63,
     "odds_draw": 3.5,
-    "odds_away": 2.2,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.2
   },
   {
-    "id": 261,
     "betclic_id": "bc_1229964393349120",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1733,13 +1644,9 @@
     "venue": "J7",
     "odds_home": 1.6,
     "odds_draw": 3.75,
-    "odds_away": 4.4,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.4
   },
   {
-    "id": 262,
     "betclic_id": "bc_1229965575094272",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1750,10 +1657,7 @@
     "venue": "J7",
     "odds_home": 1.19,
     "odds_draw": 6,
-    "odds_away": 9,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 9
   },
   {
     "betclic_id": "bc_1231457743818752",
@@ -1769,7 +1673,6 @@
     "odds_away": 5.4
   },
   {
-    "id": 264,
     "betclic_id": "bc_1230958336438272",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1780,23 +1683,20 @@
     "venue": "J7",
     "odds_home": 5.6,
     "odds_draw": 5.4,
-    "odds_away": 1.35,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 1.35
   },
   {
-    "betclic_id": "bc_1231457852887040",
-    "competition": "LaLiga",
-    "competition_country": "Espagne",
-    "home_team": "Betis",
-    "away_team": "Barcelone",
+    "betclic_id": "bc_1229966272401408",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Newcastle",
+    "away_team": "Aston Villa",
     "match_date": "2026-10-17",
     "match_time": "18:30",
-    "venue": "J9",
-    "odds_home": 4.85,
-    "odds_draw": 4.8,
-    "odds_away": 1.42
+    "venue": "J7",
+    "odds_home": 1.95,
+    "odds_draw": 3.5,
+    "odds_away": 3.12
   },
   {
     "betclic_id": "bc_1230834385309696",
@@ -1812,24 +1712,19 @@
     "odds_away": 7.5
   },
   {
-    "id": 265,
-    "betclic_id": "bc_1229966272401408",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Newcastle",
-    "away_team": "Aston Villa",
+    "betclic_id": "bc_1231457852887040",
+    "competition": "LaLiga",
+    "competition_country": "Espagne",
+    "home_team": "Betis",
+    "away_team": "Barcelone",
     "match_date": "2026-10-17",
     "match_time": "18:30",
-    "venue": "J7",
-    "odds_home": 1.95,
-    "odds_draw": 3.5,
-    "odds_away": 3.12,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "venue": "J9",
+    "odds_home": 4.85,
+    "odds_draw": 4.8,
+    "odds_away": 1.42
   },
   {
-    "id": 268,
     "betclic_id": "bc_1230957595099136",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1840,13 +1735,9 @@
     "venue": "J7",
     "odds_home": 3.75,
     "odds_draw": 3.75,
-    "odds_away": 1.76,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 1.76
   },
   {
-    "id": 269,
     "betclic_id": "bc_1230958401454080",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1857,10 +1748,7 @@
     "venue": "J7",
     "odds_home": 1.53,
     "odds_draw": 4.1,
-    "odds_away": 4.9,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.9
   },
   {
     "betclic_id": "bc_1231457791016960",
@@ -1889,7 +1777,6 @@
     "odds_away": 3.73
   },
   {
-    "id": 272,
     "betclic_id": "bc_1230957738754048",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1900,13 +1787,9 @@
     "venue": "J7",
     "odds_home": 2.9,
     "odds_draw": 3.5,
-    "odds_away": 2.13,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.13
   },
   {
-    "id": 273,
     "betclic_id": "bc_1229966831284224",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1917,13 +1800,9 @@
     "venue": "J7",
     "odds_home": 1.91,
     "odds_draw": 3.35,
-    "odds_away": 3.37,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 3.37
   },
   {
-    "id": 274,
     "betclic_id": "bc_1229968260497408",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1934,13 +1813,9 @@
     "venue": "J7",
     "odds_home": 1.49,
     "odds_draw": 4.1,
-    "odds_away": 4.85,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.85
   },
   {
-    "id": 275,
     "betclic_id": "bc_1229970622926848",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1951,10 +1826,7 @@
     "venue": "J7",
     "odds_home": 2.73,
     "odds_draw": 3.4,
-    "odds_away": 2.17,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.17
   },
   {
     "betclic_id": "bc_1230834437738496",
@@ -1983,7 +1855,6 @@
     "odds_away": 3.55
   },
   {
-    "id": 278,
     "betclic_id": "bc_1230956344147968",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -1994,13 +1865,9 @@
     "venue": "J7",
     "odds_home": 2.28,
     "odds_draw": 3.32,
-    "odds_away": 2.77,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.77
   },
   {
-    "id": 279,
     "betclic_id": "bc_1230956418596874",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -2011,13 +1878,9 @@
     "venue": "J7",
     "odds_home": 3.32,
     "odds_draw": 3.42,
-    "odds_away": 1.98,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 1.98
   },
   {
-    "id": 280,
     "betclic_id": "bc_1230956898844672",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -2028,10 +1891,20 @@
     "venue": "J7",
     "odds_home": 2.13,
     "odds_draw": 3.42,
-    "odds_away": 2.95,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 2.95
+  },
+  {
+    "betclic_id": "bc_1229969518780416",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Nottingham Forest",
+    "away_team": "Arsenal",
+    "match_date": "2026-10-18",
+    "match_time": "17:30",
+    "venue": "J7",
+    "odds_home": 5,
+    "odds_draw": 3.7,
+    "odds_away": 1.54
   },
   {
     "betclic_id": "bc_1230911149473818",
@@ -2047,23 +1920,6 @@
     "odds_away": 1.78
   },
   {
-    "id": 281,
-    "betclic_id": "bc_1229969518780416",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Nottingham Forest",
-    "away_team": "Arsenal",
-    "match_date": "2026-10-18",
-    "match_time": "17:30",
-    "venue": "J7",
-    "odds_home": 5,
-    "odds_draw": 3.7,
-    "odds_away": 1.54,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
-  },
-  {
     "betclic_id": "bc_1231460293971968",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -2077,7 +1933,6 @@
     "odds_away": 2.08
   },
   {
-    "id": 284,
     "betclic_id": "bc_1230957039341568",
     "competition": "Ligue 1",
     "competition_country": "France",
@@ -2088,10 +1943,7 @@
     "venue": "J7",
     "odds_home": 1.61,
     "odds_draw": 3.85,
-    "odds_away": 4.55,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
+    "odds_away": 4.55
   },
   {
     "betclic_id": "bc_1231460230008832",
@@ -2107,6 +1959,19 @@
     "odds_away": 8.5
   },
   {
+    "betclic_id": "bc_1229970188828672",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Tottenham",
+    "away_team": "Coventry",
+    "match_date": "2026-10-19",
+    "match_time": "21:00",
+    "venue": "J7",
+    "odds_home": 1.42,
+    "odds_draw": 4.3,
+    "odds_away": 5.4
+  },
+  {
     "betclic_id": "bc_1231459620769792",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -2118,22 +1983,5 @@
     "odds_home": 2.45,
     "odds_draw": 2.95,
     "odds_away": 2.68
-  },
-  {
-    "id": 286,
-    "betclic_id": "bc_1229970188828672",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Tottenham",
-    "away_team": "Coventry",
-    "match_date": "2026-10-19",
-    "match_time": "21:00",
-    "venue": "J7",
-    "odds_home": 1.42,
-    "odds_draw": 4.3,
-    "odds_away": 5.4,
-    "status": "upcoming",
-    "scraped_at": "2026-09-29 04:01:10",
-    "updated_at": "2026-09-30 01:01:14"
   }
 ]

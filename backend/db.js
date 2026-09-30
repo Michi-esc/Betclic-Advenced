@@ -181,6 +181,49 @@ for (const col of newCombinedCols) {
   }
 }
 
+// Add missing columns to matches for dropping odds, lineups & scores
+const matchColumns = db.pragma("table_info(matches)").map(c => c.name);
+const newMatchCols = [
+  { name: 'initial_odds_home', type: 'REAL' },
+  { name: 'initial_odds_draw', type: 'REAL' },
+  { name: 'initial_odds_away', type: 'REAL' },
+  { name: 'odds_drop_home', type: 'REAL' },
+  { name: 'odds_drop_draw', type: 'REAL' },
+  { name: 'odds_drop_away', type: 'REAL' },
+  { name: 'lineup_status', type: 'TEXT' },
+  { name: 'lineup_data', type: 'TEXT' },
+  { name: 'score_home', type: 'INTEGER' },
+  { name: 'score_away', type: 'INTEGER' },
+  { name: 'match_status', type: 'TEXT DEFAULT "upcoming"' },
+];
+
+for (const col of newMatchCols) {
+  if (!matchColumns.includes(col.name)) {
+    db.exec(`ALTER TABLE matches ADD COLUMN ${col.name} ${col.type}`);
+    console.log(`✅ Added column matches.${col.name}`);
+  }
+}
+
+// Add missing columns to bankroll_settings for email and new alerts
+const bankrollColumns = db.pragma("table_info(bankroll_settings)").map(c => c.name);
+const newBankrollCols = [
+  { name: 'smtp_host', type: 'TEXT' },
+  { name: 'smtp_port', type: 'INTEGER DEFAULT 587' },
+  { name: 'smtp_user', type: 'TEXT' },
+  { name: 'smtp_pass', type: 'TEXT' },
+  { name: 'email_recipient', type: 'TEXT' },
+  { name: 'notify_dropping_odds', type: 'INTEGER DEFAULT 1' },
+  { name: 'notify_settlements', type: 'INTEGER DEFAULT 1' },
+  { name: 'notify_lineups', type: 'INTEGER DEFAULT 1' },
+];
+
+for (const col of newBankrollCols) {
+  if (!bankrollColumns.includes(col.name)) {
+    db.exec(`ALTER TABLE bankroll_settings ADD COLUMN ${col.name} ${col.type}`);
+    console.log(`✅ Added column bankroll_settings.${col.name}`);
+  }
+}
+
 console.log('✅ Database initialized at:', DB_PATH);
 
 module.exports = db;

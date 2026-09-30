@@ -111,10 +111,16 @@ function renderBankrollPage() {
           </button>
         </div>
 
-        <button class="btn btn-add-bet" onclick="openAddBetModal()">
-          <span>➕</span>
-          <span>Nouveau Pari</span>
-        </button>
+        <div class="bankroll-action-buttons">
+          <button class="btn btn-auto-settle" onclick="triggerAutoSettle()" id="btn-auto-settle" title="Vérifier les scores des matchs et solder automatiquement vos paris">
+            <span>⚡</span>
+            <span>Solder automatiquement</span>
+          </button>
+          <button class="btn btn-add-bet" onclick="openAddBetModal()">
+            <span>➕</span>
+            <span>Nouveau Pari</span>
+          </button>
+        </div>
       </div>
 
       <!-- Bets List -->
@@ -395,4 +401,46 @@ function createAddBetModal() {
 function formatMoney(amount, currency = '€') {
   const val = typeof amount === 'number' ? amount : parseFloat(amount || 0);
   return `${val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+}
+
+async function triggerAutoSettle(forceAll = false) {
+  const btn = document.getElementById('btn-auto-settle');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = '<span>⏳</span><span>Vérification scores...</span>';
+  }
+
+  showToast('⚡ Vérification des scores finaux et règlement automatique...', 'info');
+
+  try {
+    const res = await fetch(`${API}/bankroll/auto-settle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ forceAll })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const { settledCount, wonCount, lostCount, totalProfit } = data.data;
+      if (settledCount > 0) {
+        const sign = totalProfit >= 0 ? '+' : '';
+        showToast(`🎉 ${settledCount} pari(s) soldé(s) automatiquement : ${wonCount} Gagné(s), ${lostCount} Perdu(s) (${sign}${totalProfit}€) !`, 'success');
+      } else {
+        showToast('ℹ️ Aucun match terminé à solder pour l\'instant. Le cron surveille automatiquement 24h/24 !', 'info');
+      }
+      await loadBankroll();
+    } else {
+      showToast(`Erreur: ${data.error}`, 'error');
+    }
+  } catch (err) {
+    console.error('Auto settle error:', err);
+    showToast('Erreur lors du règlement automatique des paris', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = '<span>⚡</span><span>Solder automatiquement</span>';
+    }
+  }
 }
