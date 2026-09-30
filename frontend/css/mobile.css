@@ -1,0 +1,796 @@
+/* ================================================================
+   MOBILE-FIRST ERGONOMIC STYLES FOR SMARTPHONES & TABLETS
+   Optimized for iOS Safari, Android Chrome, and PWA mobile screens
+   ================================================================ */
+
+@media (max-width: 768px) {
+
+  /* -------------------------------------------------------------
+     1. GLOBAL FOUNDATIONS & TOUCH BEHAVIOR
+     ------------------------------------------------------------- */
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    -webkit-tap-highlight-color: transparent !important;
+    touch-action: manipulation;
+  }
+
+  body {
+    padding-bottom: calc(75px + env(safe-area-inset-bottom, 15px)) !important;
+  }
+
+  /* Smooth momentum scrolling for all scroll containers */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area padding for notches and dynamic islands */
+  .header {
+    padding-top: max(8px, env(safe-area-inset-top, 0px)) !important;
+  }
+
+  /* -------------------------------------------------------------
+     2. COMPACT MOBILE HEADER (Max 54px height)
+     ------------------------------------------------------------- */
+  .header {
+    height: auto !important;
+    padding: 8px 14px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    background: rgba(11, 15, 25, 0.96) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .header-inner {
+    height: 44px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .logo-area {
+    gap: 8px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .logo-icon {
+    font-size: 24px !important;
+    filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.6)) !important;
+  }
+
+  .logo-text {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+  }
+
+  .logo-brand {
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .logo-sub {
+    font-size: 11px !important;
+    color: var(--accent-green) !important;
+    font-weight: 700 !important;
+  }
+
+  .live-badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  /* Hide bulky desktop stats from sticky header */
+  .header-stats {
+    display: none !important;
+  }
+
+  /* Compact header buttons */
+  .header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .btn-scrape {
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border-radius: 20px !important;
+    gap: 5px !important;
+    min-height: 36px !important;
+    background: linear-gradient(135deg, rgba(0, 230, 118, 0.18), rgba(41, 121, 255, 0.15)) !important;
+    border: 1px solid rgba(0, 230, 118, 0.4) !important;
+    color: var(--accent-green) !important;
+  }
+
+  .btn-scrape .btn-icon {
+    font-size: 13px !important;
+  }
+
+  .btn-lock-toggle {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* -------------------------------------------------------------
+     3. MOBILE NAVIGATION PANEL (Categories, Filters & Search)
+     ------------------------------------------------------------- */
+  .navigation-panel {
+    position: relative !important;
+    top: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    background: rgba(8, 12, 20, 0.98) !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Category Tabs: Smooth Horizontal Swipe with Snap */
+  .category-tabs-container {
+    padding: 10px 12px 6px 12px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x proximity;
+  }
+
+  .category-tabs-container::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .category-tabs {
+    gap: 8px !important;
+    padding-right: 12px !important;
+  }
+
+  .category-tab {
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+    min-height: 38px !important;
+    scroll-snap-align: start;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .category-tab.active {
+    box-shadow: 0 0 14px rgba(0, 230, 118, 0.3) !important;
+  }
+
+  /* Quick Filters Row (Value Bets, Matchs du Jour, Analysés) */
+  .quick-filters-row {
+    display: flex !important;
+    gap: 8px !important;
+    padding: 6px 12px 10px 12px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .quick-filters-row::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .quick-filter-chip {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    border-radius: 16px !important;
+    min-height: 32px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Sub-competitions & Search Filter Bar */
+  .filters-bar {
+    padding: 8px 12px 10px 12px !important;
+  }
+
+  .filters-inner {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+
+  .competitions-group {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .competitions-group .filter-label {
+    display: none !important; /* Save vertical space on mobile */
+  }
+
+  .filter-chips {
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    padding: 2px 0 !important;
+  }
+
+  .filter-chips::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .filter-chip {
+    padding: 5px 11px !important;
+    font-size: 11px !important;
+    border-radius: 14px !important;
+    white-space: nowrap !important;
+    min-height: 30px !important;
+  }
+
+  /* Search & Sort Mobile Strip */
+  .filter-actions-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .sort-group {
+    flex-shrink: 0 !important;
+  }
+
+  .sort-group .filter-label {
+    display: none !important;
+  }
+
+  .filter-select {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+    min-height: 38px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .search-box {
+    flex: 1 !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    padding: 0 10px !important;
+    border-radius: 10px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .search-box input {
+    width: 100% !important;
+    font-size: 12px !important;
+  }
+
+  /* -------------------------------------------------------------
+     4. BATCH ANALYSIS BAR ON MOBILE
+     ------------------------------------------------------------- */
+  .batch-bar {
+    margin: 10px 12px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)) !important;
+    border: 1px solid rgba(99, 102, 241, 0.25) !important;
+  }
+
+  .batch-bar-left {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .btn-batch-analyze {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 12px 16px !important;
+    font-size: 13px !important;
+    min-height: 44px !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  .batch-checkbox-wrap {
+    justify-content: center !important;
+    padding: 4px 0 !important;
+    font-size: 12px !important;
+  }
+
+  .batch-bar-status {
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .btn-batch-stop {
+    width: 100% !important;
+    min-height: 38px !important;
+    justify-content: center !important;
+  }
+
+  /* -------------------------------------------------------------
+     5. MATCH CARDS MOBILE DESIGN
+     ------------------------------------------------------------- */
+  .main-content {
+    padding: 12px 10px calc(80px + env(safe-area-inset-bottom, 15px)) !important;
+  }
+
+  .matches-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .match-card {
+    border-radius: 16px !important;
+    background: rgba(14, 19, 30, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+    overflow: hidden !important;
+    transition: transform 0.15s ease, border-color 0.15s ease !important;
+    -webkit-touch-callout: none !important;
+  }
+
+  .match-card:active {
+    transform: scale(0.99) !important;
+    border-color: rgba(0, 230, 118, 0.4) !important;
+  }
+
+  /* Card Top Bar */
+  .card-competition {
+    padding: 10px 14px !important;
+  }
+
+  .competition-name {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  .match-time-text {
+    font-size: 13px !important;
+  }
+
+  /* Card Middle: Teams */
+  .card-teams {
+    padding: 14px 14px 12px 14px !important;
+    gap: 8px !important;
+  }
+
+  .team-name {
+    font-size: 14.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+  }
+
+  .team-badge {
+    font-size: 9.5px !important;
+    padding: 2px 6px !important;
+  }
+
+  .vs-separator {
+    gap: 2px !important;
+  }
+
+  .vs-text {
+    font-size: 10px !important;
+  }
+
+  .vs-line {
+    height: 22px !important;
+  }
+
+  /* Card Odds: Thumb-Friendly 52px Touch Targets */
+  .card-odds {
+    padding: 10px 14px !important;
+    gap: 8px !important;
+  }
+
+  .odd-box {
+    min-height: 50px !important;
+    padding: 8px 4px !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    transition: background 0.15s, transform 0.1s !important;
+  }
+
+  .odd-box:active {
+    transform: scale(0.96) !important;
+    background: rgba(0, 230, 118, 0.15) !important;
+    border-color: var(--accent-green) !important;
+  }
+
+  .odd-label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+
+  .odd-value {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+  }
+
+  .odd-value.best-odd {
+    color: #00e676 !important;
+    text-shadow: 0 0 10px rgba(0, 230, 118, 0.3) !important;
+  }
+
+  /* Card AI Preview Pill */
+  .card-ai-preview {
+    margin: 6px 12px 8px 12px !important;
+    padding: 8px 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .ai-pred-text {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  .ai-rec-text {
+    font-size: 11px !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  /* Card Footer Buttons */
+  .card-footer {
+    padding: 10px 14px 12px 14px !important;
+    gap: 8px !important;
+  }
+
+  .card-footer-buttons {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  .btn-card-quick-bet {
+    min-height: 40px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+  }
+
+  .btn-analyze {
+    min-height: 40px !important;
+    padding: 8px 14px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
+  /* -------------------------------------------------------------
+     6. ANALYSIS MODAL (NATIVE BOTTOM SHEET)
+     ------------------------------------------------------------- */
+  .modal-overlay {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    z-index: 1000 !important;
+  }
+
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh !important;
+    border-radius: 24px 24px 0 0 !important;
+    padding: 0 0 calc(20px + env(safe-area-inset-bottom, 15px)) 0 !important;
+    margin: 0 !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: #0f1420 !important;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8) !important;
+    animation: sheetSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  @keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Pull-down drag bar indicator at sheet top */
+  .modal::before {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    margin: 10px auto 4px auto;
+    flex-shrink: 0;
+  }
+
+  .modal-close {
+    position: absolute !important;
+    top: 12px !important;
+    right: 14px !important;
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    font-size: 16px !important;
+    margin: 0 !important;
+    z-index: 20 !important;
+  }
+
+  .modal-header {
+    padding: 12px 16px 14px 16px !important;
+  }
+
+  .modal-match-title span:first-child,
+  .modal-match-title span:last-child {
+    font-size: 17px !important;
+    font-weight: 800 !important;
+  }
+
+  .vs-badge {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+  }
+
+  .modal-meta {
+    font-size: 11px !important;
+    gap: 8px !important;
+  }
+
+  .modal-body {
+    padding: 12px 14px !important;
+    overflow-y: auto !important;
+    flex: 1 !important;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .pro-metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .injuries-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .extended-markets-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* -------------------------------------------------------------
+     7. COMBINÉS IA PAGE ON MOBILE
+     ------------------------------------------------------------- */
+  .combined-container {
+    padding: 12px 10px calc(80px + env(safe-area-inset-bottom, 15px)) !important;
+  }
+
+  .preset-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .preset-card {
+    padding: 14px 10px !important;
+    border-radius: 14px !important;
+    min-height: 100px !important;
+    text-align: center !important;
+  }
+
+  .preset-icon {
+    font-size: 26px !important;
+  }
+
+  .preset-name {
+    font-size: 13px !important;
+  }
+
+  .preset-desc {
+    font-size: 10px !important;
+    display: none !important; /* Keep concise */
+  }
+
+  .preset-odds-target {
+    font-size: 11px !important;
+  }
+
+  .builder-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .generator-bar {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .btn-gen-combined {
+    width: 100% !important;
+    min-height: 48px !important;
+    font-size: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .ticket-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .btn-copy-ticket,
+  .btn-save-bankroll {
+    width: 100% !important;
+    min-height: 46px !important;
+    font-size: 13px !important;
+    justify-content: center !important;
+  }
+
+  /* -------------------------------------------------------------
+     8. BANKROLL MANAGER ON MOBILE
+     ------------------------------------------------------------- */
+  .bankroll-container {
+    padding: 12px 10px calc(80px + env(safe-area-inset-bottom, 15px)) !important;
+  }
+
+  .bankroll-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .b-stat-card {
+    padding: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .b-stat-value {
+    font-size: 1.25rem !important;
+  }
+
+  .bankroll-actions-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .btn-add-bet {
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+
+  /* -------------------------------------------------------------
+     9. MOBILE BOTTOM NAVIGATION (The Fixed Hub)
+     ------------------------------------------------------------- */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(56px + env(safe-area-inset-bottom, 10px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 10px) !important;
+    background: rgba(10, 14, 23, 0.96) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    z-index: 95 !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .bnav-btn {
+    flex: 1 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-muted) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    position: relative !important;
+  }
+
+  .bnav-btn:active {
+    transform: scale(0.92) !important;
+  }
+
+  .bnav-icon {
+    font-size: 19px !important;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  }
+
+  .bnav-label {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  .bnav-btn.active {
+    color: var(--accent-green) !important;
+  }
+
+  .bnav-btn.active .bnav-icon {
+    transform: translateY(-2px) scale(1.15) !important;
+    filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.6)) !important;
+  }
+
+  .bnav-btn.active::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    width: 24px !important;
+    height: 3px !important;
+    background: var(--accent-green) !important;
+    border-radius: 0 0 3px 3px !important;
+    box-shadow: 0 0 10px var(--accent-green) !important;
+  }
+
+  /* -------------------------------------------------------------
+     10. FLOATING SCROLL-TO-TOP BUTTON (FAB)
+     ------------------------------------------------------------- */
+  .fab-scroll-top {
+    position: fixed !important;
+    bottom: calc(70px + env(safe-area-inset-bottom, 12px)) !important;
+    right: 14px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    background: rgba(18, 24, 38, 0.9) !important;
+    border: 1px solid rgba(0, 230, 118, 0.35) !important;
+    color: var(--accent-green) !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 230, 118, 0.2) !important;
+    z-index: 90 !important;
+    cursor: pointer !important;
+    transition: opacity 0.2s, transform 0.2s !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+  }
+
+  .fab-scroll-top.visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+  }
+
+  .fab-scroll-top:active {
+    transform: scale(0.9) !important;
+  }
+}

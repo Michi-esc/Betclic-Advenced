@@ -92,7 +92,10 @@ function renderMatchCard(match) {
   const topVb = hasValueBet ? raw.value_bets_structured[0] : null;
 
   return `
-    <div class="match-card ${isAnalyzed ? 'analyzed' : ''} ${hasValueBet ? 'has-value-bet' : ''}" id="card-${match.id}">
+    <div class="match-card ${isAnalyzed ? 'analyzed' : ''} ${hasValueBet ? 'has-value-bet' : ''}" 
+         id="card-${match.id}" 
+         onclick="openModal(${match.id})" 
+         style="cursor: pointer;">
       <div class="card-competition">
         <div class="competition-badge">
           <span class="competition-flag">${flag}</span>
@@ -122,15 +125,15 @@ function renderMatchCard(match) {
       </div>
 
       <div class="card-odds">
-        <div class="odd-box" title="${escapeHtml(match.home_team)}">
+        <div class="odd-box" onclick="handleOddTap(${match.id}, '1', ${match.odds_home}, event)" title="${escapeHtml(match.home_team)}">
           <span class="odd-label">1</span>
           <span class="odd-value ${bestOdd === match.odds_home ? 'best-odd' : ''}">${match.odds_home ? match.odds_home.toFixed(2) : '—'}</span>
         </div>
-        <div class="odd-box" title="Match nul">
+        <div class="odd-box" onclick="handleOddTap(${match.id}, 'N', ${match.odds_draw}, event)" title="Match nul">
           <span class="odd-label">N</span>
           <span class="odd-value ${bestOdd === match.odds_draw ? 'best-odd' : ''}">${match.odds_draw ? match.odds_draw.toFixed(2) : '—'}</span>
         </div>
-        <div class="odd-box" title="${escapeHtml(match.away_team)}">
+        <div class="odd-box" onclick="handleOddTap(${match.id}, '2', ${match.odds_away}, event)" title="${escapeHtml(match.away_team)}">
           <span class="odd-label">2</span>
           <span class="odd-value ${bestOdd === match.odds_away ? 'best-odd' : ''}">${match.odds_away ? match.odds_away.toFixed(2) : '—'}</span>
         </div>
@@ -181,7 +184,7 @@ function renderMatchCard(match) {
             💰 Miser
           </button>
           <button class="btn-analyze ${isAnalyzed ? 'analyzed' : ''}"
-                  onclick="openModal(${match.id})"
+                  onclick="event.stopPropagation(); openModal(${match.id})"
                   id="analyze-btn-${match.id}">
             ${isAnalyzed ? '🧠 Voir l\'analyse' : '🤖 Analyser avec l\'IA'}
           </button>
@@ -191,13 +194,50 @@ function renderMatchCard(match) {
   `;
 }
 
-function quickBetFromMatch(matchId, event) {
+function handleOddTap(matchId, pick, odd, event) {
+  if (event) event.stopPropagation();
+  if (!odd || isNaN(odd)) return;
+
+  const match = allMatches.find(m => m.id === matchId);
+  if (!match) return;
+
+  quickBetFromMatch(matchId, event, pick);
+}
+
+function quickBetFromMatch(matchId, event, preferredPick = null) {
   if (event) event.stopPropagation();
   const match = allMatches.find(m => m.id === matchId);
   if (!match) return;
 
   let raw = {};
   try { raw = JSON.parse(match.raw_research || '{}'); } catch (_) {}
+
+  // If a specific odd was tapped (1, N, 2)
+  if (preferredPick) {
+    let sel = `Victoire ${match.home_team}`;
+    let oddVal = match.odds_home || 1.85;
+    if (preferredPick === 'N') {
+      sel = 'Match Nul';
+      oddVal = match.odds_draw || 3.20;
+    } else if (preferredPick === '2') {
+      sel = `Victoire ${match.away_team}`;
+      oddVal = match.odds_away || 2.10;
+    }
+
+    if (typeof openAddBetModal === 'function') {
+      openAddBetModal({
+        title: `${match.home_team} vs ${match.away_team}`,
+        selection: sel,
+        market: '1N2',
+        odds: oddVal,
+        stake: 20,
+        bet_type: 'single',
+        match_id: match.id,
+        notes: `Cote sélectionnée directement depuis la carte (${preferredPick})`
+      });
+    }
+    return;
+  }
 
   // If match has a value bet, prefill with value bet!
   if (Array.isArray(raw.value_bets_structured) && raw.value_bets_structured.length > 0) {
@@ -562,4 +602,17 @@ async function submitUnlock(e) {
     }
   }
 }
+
+// Scroll to top FAB listener
+window.addEventListener('scroll', () => {
+  const fab = document.getElementById('fab-scroll-top');
+  if (fab) {
+    if (window.scrollY > 300) {
+      fab.classList.add('visible');
+    } else {
+      fab.classList.remove('visible');
+    }
+  }
+}, { passive: true });
+
 

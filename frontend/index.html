@@ -17,10 +17,13 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4" />
-  <link rel="stylesheet" href="css/combined.css?v=4" />
-  <link rel="stylesheet" href="css/lockscreen.css?v=4" />
-  <link rel="stylesheet" href="css/bankroll.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="css/cards.css?v=5" />
+  <link rel="stylesheet" href="css/modal.css?v=5" />
+  <link rel="stylesheet" href="css/combined.css?v=5" />
+  <link rel="stylesheet" href="css/lockscreen.css?v=5" />
+  <link rel="stylesheet" href="css/bankroll.css?v=5" />
+  <link rel="stylesheet" href="css/mobile.css?v=5" />
 </head>
 <body>
 
@@ -387,6 +390,11 @@
   <!-- ===== TOAST NOTIFICATIONS ===== -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- ===== FLOATING ACTION BUTTON: SCROLL TO TOP ===== -->
+  <button class="fab-scroll-top" id="fab-scroll-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Remonter en haut">
+    ↑
+  </button>
+
   <!-- ===== MOBILE BOTTOM NAVIGATION BAR ===== -->
   <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
     <button class="bnav-btn active" id="bnav-matches" onclick="switchPage('matches')">
@@ -408,14 +416,14 @@
   </nav>
 
   <!-- ===== SCRIPTS ===== -->
-  <script src="js/config.js?v=4"></script>
-  <script src="js/ui.js?v=4"></script>
-  <script src="js/filters.js?v=4"></script>
-  <script src="js/modal.js?v=4"></script>
-  <script src="js/api.js?v=4"></script>
-  <script src="js/combined.js?v=4"></script>
-  <script src="js/bankroll.js?v=4"></script>
-  <script src="js/settings.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/ui.js?v=5"></script>
+  <script src="js/filters.js?v=5"></script>
+  <script src="js/modal.js?v=5"></script>
+  <script src="js/api.js?v=5"></script>
+  <script src="js/combined.js?v=5"></script>
+  <script src="js/bankroll.js?v=5"></script>
+  <script src="js/settings.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
