@@ -285,7 +285,7 @@ let builderState = {
   activeView: 'matches',         // 'matches' | 'catalog'
   activeMatchTab: {},            // { [matchId]: 'result' | 'goals' | 'security' | 'specials' }
   stake: 10,
-  selections: {},                // { [matchId]: betObject }
+  selections: {},                // { [betId]: betObject } (supporte plusieurs sélections sur le même match / MyBet)
 };
 
 // Global alias for compatibility
@@ -861,8 +861,8 @@ function renderMatchesWithTabs(catalogs) {
   }
 
   return catalogs.map(({ match, bets }) => {
-    const isMatchSelected = !!builderState.selections[match.id];
-    const selBet = builderState.selections[match.id];
+    const matchSelections = Object.values(builderState.selections).filter(s => s.matchId === match.id);
+    const isMatchSelected = matchSelections.length > 0;
 
     // Default tab for this match if not set
     const activeTab = builderState.activeMatchTab[match.id] || 'result';
@@ -902,8 +902,11 @@ function renderMatchesWithTabs(catalogs) {
               </div>
             ` : ''}
             ${isMatchSelected ? `
-              <div class="bm-selected-chip" title="Sélection actuelle sur ce match">
-                <span>✓</span> ${escapeHtml(selBet.selection)} (@${selBet.odds.toFixed(2)})
+              <div class="bm-selected-chip ${matchSelections.length > 1 ? 'chip-mybet' : ''}" title="${matchSelections.map(s => `${s.selection} (@${s.odds.toFixed(2)})`).join(' • ')}">
+                ${matchSelections.length > 1 
+                  ? `<span>⚡ MyBet :</span> <strong>${matchSelections.length} paris choisis</strong>` 
+                  : `<span>✓</span> ${escapeHtml(matchSelections[0].selection)} (@${matchSelections[0].odds.toFixed(2)})`
+                }
               </div>
             ` : ''}
           </div>
@@ -1023,7 +1026,7 @@ function renderDirectCatalog(catalogs) {
 
       <div class="catalog-list">
         ${allBets.map(b => {
-          const isSelected = builderState.selections[b.matchId]?.selection === b.selection;
+          const isSelected = !!builderState.selections[b.id];
           return `
             <div class="cat-row ${isSelected ? 'selected' : ''}" id="cat-row-${b.id}">
               <div class="cat-col-match">
@@ -1074,7 +1077,7 @@ function renderDirectCatalog(catalogs) {
 // SINGLE BET TILE COMPONENT (USED IN MATCH CARDS)
 // ============================================================
 function renderBetTile(b, match) {
-  const isSelected = builderState.selections[match.id]?.selection === b.selection;
+  const isSelected = !!builderState.selections[b.id];
 
   return `
     <div class="bet-tile ${isSelected ? 'selected' : ''}" id="tile-${b.id}" onclick="toggleBetSelection('${escapeHtml(b.id)}')">
@@ -1113,6 +1116,15 @@ function renderBuilderSlipHtml() {
     ? items.reduce((acc, s) => acc * (s.probability / 100), 1) * 100 
     : 0;
 
+  // Group by match to count matches and detect MyBets
+  const matchGroups = {};
+  items.forEach(s => {
+    if (!matchGroups[s.matchId]) matchGroups[s.matchId] = [];
+    matchGroups[s.matchId].push(s);
+  });
+  const uniqueMatchCount = Object.keys(matchGroups).length;
+  const hasMyBet = items.some(s => matchGroups[s.matchId]?.length > 1);
+
   const stake = builderState.stake;
   const potentialGain = (stake * totalOdds).toFixed(2);
   const netProfit = (stake * totalOdds - stake).toFixed(2);
@@ -1138,18 +1150,19 @@ function renderBuilderSlipHtml() {
             <button class="btn btn-secondary btn-sm" onclick="autoFillTopBets()">⚡ Remplir automatiquement</button>
           </div>
         ` : items.map(s => `
-          <div class="slip-item-card">
+          <div class="slip-item-card ${matchGroups[s.matchId]?.length > 1 ? 'is-mybet-item' : ''}">
             <div class="sic-info">
               <span class="sic-match">${escapeHtml(s.home_team)} vs ${escapeHtml(s.away_team)}</span>
               <span class="sic-sel">${escapeHtml(s.selection)}</span>
               <div class="sic-meta">
                 <span class="sic-comp">${getCompetitionFlag(s.competition)} ${escapeHtml(s.competition)}</span>
                 <span class="sic-prob">${s.probability}% de chance</span>
+                ${matchGroups[s.matchId]?.length > 1 ? '<span class="sic-mybet-tag">⚡ Même Match (MyBet)</span>' : ''}
               </div>
             </div>
             <div class="sic-right">
               <span class="sic-odd">${s.odds.toFixed(2)}</span>
-              <button class="sic-del" onclick="removeBuilderMatchSelection(${s.matchId})">✕</button>
+              <button class="sic-del" onclick="removeBuilderBetSelection('${escapeHtml(s.id)}')" title="Retirer ce pari">✕</button>
             </div>
           </div>
         `).join('')}
@@ -1159,8 +1172,11 @@ function renderBuilderSlipHtml() {
         <!-- Live Totals & Metrics -->
         <div class="bsc-metrics-box">
           <div class="bsc-metric-row">
-            <span class="bmr-label">Nombre de matchs :</span>
-            <span class="bmr-val"><strong>${items.length} sélections</strong></span>
+            <span class="bmr-label">Nombre de sélections :</span>
+            <span class="bmr-val">
+              <strong>${items.length} sélection${items.length > 1 ? 's' : ''}</strong>
+              <span class="bmr-sub">(${uniqueMatchCount} match${uniqueMatchCount > 1 ? 's' : ''}${hasMyBet ? ' • ⚡ MyBet' : ''})</span>
+            </span>
           </div>
 
           <div class="bsc-metric-row">
@@ -1290,19 +1306,42 @@ function toggleBetSelection(betId) {
 
   if (!foundBet) return;
 
-  const currentSel = builderState.selections[foundBet.matchId];
-  if (currentSel && currentSel.selection === foundBet.selection) {
-    // Deselect
-    delete builderState.selections[foundBet.matchId];
+  if (builderState.selections[foundBet.id]) {
+    // Deselect this exact bet
+    delete builderState.selections[foundBet.id];
     showToast(`Pari retiré : ${foundBet.selection}`, 'info');
   } else {
-    // Select (or replace current bet for this match)
-    if (currentSel) {
-      showToast(`Pari modifié sur ce match : ${foundBet.selection}`, 'info');
-    } else {
-      showToast(`✅ Ajouté : ${foundBet.selection} (@${foundBet.odds.toFixed(2)})`, 'success');
+    // Check if there are other bets on this same match
+    const existingOnMatch = Object.values(builderState.selections).filter(s => s.matchId === foundBet.matchId);
+
+    // Conflict resolution for mutually exclusive selections within the SAME market:
+    // (e.g. 1 vs N vs 2 on the same match, or Over 2.5 vs Under 2.5, or BTTS Oui vs Non)
+    if (foundBet.market === '1N2') {
+      const conflict = existingOnMatch.find(s => s.market === '1N2');
+      if (conflict) {
+        delete builderState.selections[conflict.id];
+        showToast(`Remplacement 1N2 : ${foundBet.selection}`, 'info');
+      }
+    } else if (foundBet.market === 'Double Chance') {
+      const conflict = existingOnMatch.find(s => s.market === 'Double Chance');
+      if (conflict) {
+        delete builderState.selections[conflict.id];
+      }
+    } else if (foundBet.market === 'Total Buts (+/- 2.5)') {
+      const conflict = existingOnMatch.find(s => s.market === 'Total Buts (+/- 2.5)');
+      if (conflict) {
+        delete builderState.selections[conflict.id];
+      }
+    } else if (foundBet.market === 'Les deux équipes marquent') {
+      const conflict = existingOnMatch.find(s => s.market === 'Les deux équipes marquent');
+      if (conflict) {
+        delete builderState.selections[conflict.id];
+      }
     }
-    builderState.selections[foundBet.matchId] = {
+
+    // Add selection by unique bet ID (allows multiple bets on same match / MyBet)
+    builderState.selections[foundBet.id] = {
+      id: foundBet.id,
       matchId: foundBet.matchId,
       home_team: foundBet.home_team,
       away_team: foundBet.away_team,
@@ -1316,6 +1355,13 @@ function toggleBetSelection(betId) {
       riskProfile: foundBet.riskProfile,
       riskLabel: foundBet.riskLabel,
     };
+
+    const countOnMatch = Object.values(builderState.selections).filter(s => s.matchId === foundBet.matchId).length;
+    if (countOnMatch > 1) {
+      showToast(`⚡ MyBet combiné sur ${foundBet.home_team} vs ${foundBet.away_team} (${countOnMatch} paris) !`, 'success');
+    } else {
+      showToast(`✅ Ajouté : ${foundBet.selection} (@${foundBet.odds.toFixed(2)})`, 'success');
+    }
   }
 
   // Sync alias
@@ -1324,9 +1370,26 @@ function toggleBetSelection(betId) {
   renderBuilderSectionContent();
 }
 
+function removeBuilderBetSelection(betId) {
+  if (builderState.selections[betId]) {
+    const name = builderState.selections[betId].selection;
+    delete builderState.selections[betId];
+    builderSelections = builderState.selections;
+    showToast(`Pari retiré : ${name}`, 'info');
+    renderBuilderSectionContent();
+  }
+}
+
 function removeBuilderMatchSelection(matchId) {
-  delete builderState.selections[matchId];
+  let count = 0;
+  Object.keys(builderState.selections).forEach(k => {
+    if (builderState.selections[k].matchId === matchId) {
+      delete builderState.selections[k];
+      count++;
+    }
+  });
   builderSelections = builderState.selections;
+  if (count > 0) showToast(`${count} pari(s) retiré(s) sur ce match`, 'info');
   renderBuilderSectionContent();
 }
 
@@ -1401,7 +1464,8 @@ function autoFillTopBets() {
 
   builderState.selections = {};
   top4.forEach(b => {
-    builderState.selections[b.matchId] = {
+    builderState.selections[b.id] = {
+      id: b.id,
       matchId: b.matchId,
       home_team: b.home_team,
       away_team: b.away_team,
@@ -1425,12 +1489,13 @@ function autoFillTopBets() {
 function transferBuilderToSystem() {
   const items = Object.values(builderState.selections);
   if (items.length < 3) {
-    showToast('Veuillez ajouter au moins 3 matchs pour créer un Paris Système (Trixie, Yankee, 3/4...).', 'warning');
+    showToast('Veuillez ajouter au moins 3 sélections pour créer un Paris Système (Trixie, Yankee, 3/4...).', 'warning');
     return;
   }
 
-  systemState.selections = items.map(s => ({
-    id: s.matchId,
+  systemState.selections = items.map((s, idx) => ({
+    id: s.id || `sys-${idx}`,
+    matchId: s.matchId,
     home_team: s.home_team,
     away_team: s.away_team,
     selection: s.selection,
@@ -1439,21 +1504,22 @@ function transferBuilderToSystem() {
   }));
   systemState.totalStake = builderState.stake || 20;
 
-  showToast(`✅ ${items.length} matchs envoyés vers le module Paris Système !`, 'success');
+  showToast(`✅ ${items.length} sélections envoyées vers le module Paris Système !`, 'success');
   switchCombinedTab('system');
 }
 
 function transferBuilderToHedging() {
   const items = Object.values(builderState.selections);
   if (items.length < 2) {
-    showToast('Veuillez ajouter au moins 2 matchs pour simuler la couverture.', 'warning');
+    showToast('Veuillez ajouter au moins 2 sélections pour simuler la couverture.', 'warning');
     return;
   }
 
   const n = items.length;
   hedgingState.initialStake = builderState.stake || 20;
   hedgingState.selections = items.map((s, idx) => ({
-    id: s.matchId || idx,
+    id: s.id || `hedge-${idx}`,
+    matchId: s.matchId,
     home: s.home_team,
     away: s.away_team,
     selection: s.selection,

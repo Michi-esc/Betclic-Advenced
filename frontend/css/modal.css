@@ -1532,3 +1532,37 @@
   cursor: pointer;
   pointer-events: none;
 }
+
+/* MyBet / Multi-bets on the same match */
+.bm-selected-chip.chip-mybet {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.2));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.slip-item-card.is-mybet-item {
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.sic-mybet-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.badge-mybet-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f59e0b;
+  margin-left: 6px;
+}
