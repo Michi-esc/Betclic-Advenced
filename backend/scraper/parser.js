@@ -50,7 +50,7 @@ const NON_FOOTBALL_KEYWORDS = [
   'euroligue', 'nba', 'basket', 'basketball', 'euroleague', 'bbl', 'ncaa',
   'tennis', 'rugby', 'nfl', 'nhl', 'hockey', 'golf', 'handball', 'volleyball',
   'baseball', 'cricket', 'formula', 'moto', 'cyclisme', 'snooker', 'darts',
-  'fléchette', 'boxing', 'ufc', 'mma', 'combat',
+  'fléchette', 'boxing', 'ufc', 'mma', 'combat', 'atp', 'wta', 'challenger', 'itf'
 ];
 
 function isFootball(competition) {

@@ -6,6 +6,7 @@ const path = require('path');
 const cron = require('node-cron');
 const db = require('./db');
 const { scrapeMatches } = require('./scraper');
+const { getAllCompetitionsMockData } = require('./scraper/mock-data');
 const { analyzeMatch, generateCombined, initAI } = require('./ai-research');
 const { sendValueBetAlert, sendCombinedAlert, testNotification } = require('./services/notification.service');
 
@@ -134,9 +135,11 @@ app.post('/api/scrape', async (req, res) => {
       INSERT INTO matches (betclic_id, competition, competition_country, home_team, away_team, match_date, match_time, venue, odds_home, odds_draw, odds_away, updated_at)
       VALUES (@betclic_id, @competition, @competition_country, @home_team, @away_team, @match_date, @match_time, @venue, @odds_home, @odds_draw, @odds_away, datetime('now'))
       ON CONFLICT(betclic_id) DO UPDATE SET
-        odds_home = excluded.odds_home,
-        odds_draw = excluded.odds_draw,
-        odds_away = excluded.odds_away,
+        odds_home = COALESCE(excluded.odds_home, matches.odds_home),
+        odds_draw = COALESCE(excluded.odds_draw, matches.odds_draw),
+        odds_away = COALESCE(excluded.odds_away, matches.odds_away),
+        match_date = COALESCE(excluded.match_date, matches.match_date),
+        match_time = COALESCE(excluded.match_time, matches.match_time),
         updated_at = datetime('now')
     `);
 
@@ -674,8 +677,40 @@ app.delete('/api/matches/old', (req, res) => {
 });
 
 // ============================================================
-// AUTO-SCRAPE
+// INITIAL DB SEED & AUTO-SCRAPE
 // ============================================================
+function ensureInitialSeed() {
+  try {
+    const row = db.prepare('SELECT count(*) as count FROM matches').get();
+    if (!row || row.count < 50) {
+      console.log(`🌱 Initialisation de la base (actuellement: ${row?.count || 0} matchs)...`);
+      const seedMatches = getAllCompetitionsMockData();
+      if (Array.isArray(seedMatches) && seedMatches.length > 0) {
+        const insertMatch = db.prepare(`
+          INSERT INTO matches (betclic_id, competition, competition_country, home_team, away_team, match_date, match_time, venue, odds_home, odds_draw, odds_away, updated_at)
+          VALUES (@betclic_id, @competition, @competition_country, @home_team, @away_team, @match_date, @match_time, @venue, @odds_home, @odds_draw, @odds_away, datetime('now'))
+          ON CONFLICT(betclic_id) DO UPDATE SET
+            odds_home = COALESCE(excluded.odds_home, matches.odds_home),
+            odds_draw = COALESCE(excluded.odds_draw, matches.odds_draw),
+            odds_away = COALESCE(excluded.odds_away, matches.odds_away),
+            match_date = COALESCE(excluded.match_date, matches.match_date),
+            match_time = COALESCE(excluded.match_time, matches.match_time),
+            updated_at = datetime('now')
+        `);
+        const insertMany = db.transaction((matches) => {
+          let c = 0;
+          for (const m of matches) { insertMatch.run(m); c++; }
+          return c;
+        });
+        const count = insertMany(seedMatches);
+        console.log(`✅ ${count} matchs initialisés immédiatement dans la base SQLite`);
+      }
+    }
+  } catch (err) {
+    console.error('Erreur initialisation matches:', err.message);
+  }
+}
+
 async function autoScrape() {
   try {
     console.log('🚀 Auto-scraping...');
@@ -685,7 +720,12 @@ async function autoScrape() {
         INSERT INTO matches (betclic_id, competition, competition_country, home_team, away_team, match_date, match_time, venue, odds_home, odds_draw, odds_away, updated_at)
         VALUES (@betclic_id, @competition, @competition_country, @home_team, @away_team, @match_date, @match_time, @venue, @odds_home, @odds_draw, @odds_away, datetime('now'))
         ON CONFLICT(betclic_id) DO UPDATE SET
-          odds_home = excluded.odds_home, odds_draw = excluded.odds_draw, odds_away = excluded.odds_away, updated_at = datetime('now')
+          odds_home = COALESCE(excluded.odds_home, matches.odds_home),
+          odds_draw = COALESCE(excluded.odds_draw, matches.odds_draw),
+          odds_away = COALESCE(excluded.odds_away, matches.odds_away),
+          match_date = COALESCE(excluded.match_date, matches.match_date),
+          match_time = COALESCE(excluded.match_time, matches.match_time),
+          updated_at = datetime('now')
       `);
       db.transaction(() => { matches.forEach(m => insertMatch.run(m)); })();
       console.log(`✅ Auto-scraped ${matches.length} matches`);
@@ -701,5 +741,6 @@ app.listen(PORT, async () => {
   console.log(`\n🚀 Betclic Dashboard running at http://localhost:${PORT}`);
   console.log(`📊 API available at http://localhost:${PORT}/api`);
   console.log(`🔑 Gemini API: ${process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' ? '✅ Configured' : '❌ Not configured (demo mode)'}`);
+  ensureInitialSeed();
   await autoScrape();
 });
