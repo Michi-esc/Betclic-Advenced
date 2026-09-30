@@ -6,7 +6,7 @@ const path = require('path');
 const cron = require('node-cron');
 const db = require('./db');
 const { scrapeMatches } = require('./scraper');
-const { getAllCompetitionsMockData } = require('./scraper/mock-data');
+const { getAllCompetitionsMockData, getAllAnalysesMockData } = require('./scraper/mock-data');
 const { analyzeMatch, generateCombined, initAI } = require('./ai-research');
 const { sendValueBetAlert, sendCombinedAlert, testNotification } = require('./services/notification.service');
 
@@ -110,7 +110,7 @@ app.get('/api/matches', (req, res) => {
         ma.raw_research,
         ma.analyzed_at
       FROM matches m
-      LEFT JOIN match_analysis ma ON ma.match_id = m.id
+      LEFT JOIN match_analysis ma ON (ma.betclic_id = m.betclic_id OR ma.match_id = m.id)
       ORDER BY m.match_date ASC, m.match_time ASC
     `).all();
 
@@ -182,11 +182,13 @@ app.post('/api/analyze/:matchId', async (req, res) => {
       market_dynamics: null,
       ...analysis,
       match_id: matchId,
+      betclic_id: match.betclic_id,
     };
 
     if (existing) {
       db.prepare(`
         UPDATE match_analysis SET
+          betclic_id = @betclic_id,
           weather_info = @weather_info,
           home_injuries = @home_injuries,
           away_injuries = @away_injuries,
@@ -210,19 +212,19 @@ app.post('/api/analyze/:matchId', async (req, res) => {
           market_dynamics = @market_dynamics,
           raw_research = @raw_research,
           analyzed_at = datetime('now')
-        WHERE match_id = @match_id
+        WHERE match_id = @match_id OR betclic_id = @betclic_id
       `).run(params);
     } else {
       db.prepare(`
         INSERT INTO match_analysis (
-          match_id, weather_info, home_injuries, away_injuries, home_form, away_form,
+          match_id, betclic_id, weather_info, home_injuries, away_injuries, home_form, away_form,
           home_is_home, head_to_head, recent_news, ai_prediction, ai_confidence,
           ai_recommendation, btts_prediction, btts_confidence, over25_prediction,
           over25_confidence, double_chance_prediction, asian_handicap_prediction,
           value_bets, xg_metrics, fatigue_schedule, market_dynamics, raw_research
         )
         VALUES (
-          @match_id, @weather_info, @home_injuries, @away_injuries, @home_form, @away_form,
+          @match_id, @betclic_id, @weather_info, @home_injuries, @away_injuries, @home_form, @away_form,
           @home_is_home, @head_to_head, @recent_news, @ai_prediction, @ai_confidence,
           @ai_recommendation, @btts_prediction, @btts_confidence, @over25_prediction,
           @over25_confidence, @double_chance_prediction, @asian_handicap_prediction,
@@ -231,7 +233,32 @@ app.post('/api/analyze/:matchId', async (req, res) => {
       `).run(params);
     }
 
-    console.log(`✅ Analysis saved for match ${matchId}`);
+    console.log(`✅ Analysis saved for match ${matchId} (${match.betclic_id})`);
+
+    // Persist analysis to JSON seed file so it survives server reboots/redeploys
+    try {
+      const seedPath = path.join(__dirname, 'scraper', 'analyses-seed.json');
+      let currentAnalyses = [];
+      if (fs.existsSync(seedPath)) {
+        currentAnalyses = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+      }
+      const existingIdx = currentAnalyses.findIndex(a => a.betclic_id === match.betclic_id);
+      const savedObj = {
+        ...params,
+        betclic_id: match.betclic_id,
+        match_id: match.id,
+        analyzed_at: new Date().toISOString()
+      };
+      if (existingIdx !== -1) {
+        currentAnalyses[existingIdx] = savedObj;
+      } else {
+        currentAnalyses.push(savedObj);
+      }
+      fs.writeFileSync(seedPath, JSON.stringify(currentAnalyses, null, 2), 'utf8');
+      console.log(`💾 Analyse persistée dans analyses-seed.json (${currentAnalyses.length} analyses sauvegardées)`);
+    } catch (saveErr) {
+      console.warn('Erreur sauvegarde analyses-seed.json:', saveErr.message);
+    }
 
     // Trigger Value Bet notification if structured value bets were detected
     if (analysis && analysis.raw_research) {
@@ -681,9 +708,10 @@ app.delete('/api/matches/old', (req, res) => {
 // ============================================================
 function ensureInitialSeed() {
   try {
-    const row = db.prepare('SELECT count(*) as count FROM matches').get();
-    if (!row || row.count < 50) {
-      console.log(`🌱 Initialisation de la base (actuellement: ${row?.count || 0} matchs)...`);
+    // 1. Initialize Matches
+    const matchRow = db.prepare('SELECT count(*) as count FROM matches').get();
+    if (!matchRow || matchRow.count < 140) {
+      console.log(`🌱 Initialisation des matchs (actuellement: ${matchRow?.count || 0} matchs)...`);
       const seedMatches = getAllCompetitionsMockData();
       if (Array.isArray(seedMatches) && seedMatches.length > 0) {
         const insertMatch = db.prepare(`
@@ -697,17 +725,62 @@ function ensureInitialSeed() {
             match_time = COALESCE(excluded.match_time, matches.match_time),
             updated_at = datetime('now')
         `);
-        const insertMany = db.transaction((matches) => {
+        const insertManyMatches = db.transaction((matches) => {
           let c = 0;
           for (const m of matches) { insertMatch.run(m); c++; }
           return c;
         });
-        const count = insertMany(seedMatches);
-        console.log(`✅ ${count} matchs initialisés immédiatement dans la base SQLite`);
+        const mCount = insertManyMatches(seedMatches);
+        console.log(`✅ ${mCount} matchs initialisés dans la base SQLite`);
+      }
+    }
+
+    // 2. Initialize / Restore AI Analyses (persisted across restarts and cloud reboots)
+    const analysisRow = db.prepare('SELECT count(*) as count FROM match_analysis').get();
+    if (!analysisRow || analysisRow.count < 40) {
+      console.log(`🧠 Restauration des analyses IA persistées (actuellement: ${analysisRow?.count || 0})...`);
+      const seedAnalyses = getAllAnalysesMockData();
+      if (Array.isArray(seedAnalyses) && seedAnalyses.length > 0) {
+        const insertAnalysis = db.prepare(`
+          INSERT INTO match_analysis (
+            match_id, betclic_id, weather_info, home_injuries, away_injuries, home_form, away_form,
+            home_is_home, head_to_head, recent_news, ai_prediction, ai_confidence,
+            ai_recommendation, btts_prediction, btts_confidence, over25_prediction,
+            over25_confidence, double_chance_prediction, asian_handicap_prediction,
+            value_bets, xg_metrics, fatigue_schedule, market_dynamics, raw_research, analyzed_at
+          )
+          VALUES (
+            COALESCE((SELECT id FROM matches WHERE matches.betclic_id = @betclic_id), @match_id),
+            @betclic_id, @weather_info, @home_injuries, @away_injuries, @home_form, @away_form,
+            @home_is_home, @head_to_head, @recent_news, @ai_prediction, @ai_confidence,
+            @ai_recommendation, @btts_prediction, @btts_confidence, @over25_prediction,
+            @over25_confidence, @double_chance_prediction, @asian_handicap_prediction,
+            @value_bets, @xg_metrics, @fatigue_schedule, @market_dynamics, @raw_research, @analyzed_at
+          )
+        `);
+
+        const insertManyAnalyses = db.transaction((analyses) => {
+          let count = 0;
+          for (const a of analyses) {
+            const exists = db.prepare('SELECT id FROM match_analysis WHERE betclic_id = ?').get(a.betclic_id);
+            if (!exists) {
+              insertAnalysis.run({
+                ...a,
+                match_id: a.match_id || null,
+                analyzed_at: a.analyzed_at || new Date().toISOString()
+              });
+              count++;
+            }
+          }
+          return count;
+        });
+
+        const aCount = insertManyAnalyses(seedAnalyses);
+        console.log(`✅ ${aCount} analyses IA restaurées avec succès`);
       }
     }
   } catch (err) {
-    console.error('Erreur initialisation matches:', err.message);
+    console.error('Erreur initialisation DB:', err.message);
   }
 }
 

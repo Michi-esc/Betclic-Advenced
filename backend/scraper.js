@@ -89,14 +89,13 @@ async function scrapeMatches() {
     await scrapeDomain('www.betclic.com', allMatchesMap);
   }
 
-  // If still fewer than 50 matches, merge with full 145-match seed dataset
-  if (allMatchesMap.size < 50) {
-    console.log(`👉 Étape 3: Fusion avec le dataset complet (145 matchs toutes compétitions)...`);
-    const seedMatches = getAllCompetitionsMockData();
-    for (const sm of seedMatches) {
-      if (!allMatchesMap.has(sm.betclic_id)) {
-        allMatchesMap.set(sm.betclic_id, sm);
-      }
+  // Étape 3: Always merge with the complete 145-match seed dataset
+  // Newly scraped matches have freshest odds, while all other leagues/matches are preserved!
+  console.log('👉 Étape 3: Fusion avec le dataset complet (145 matchs toutes compétitions)...');
+  const seedMatches = getAllCompetitionsMockData();
+  for (const sm of seedMatches) {
+    if (!allMatchesMap.has(sm.betclic_id)) {
+      allMatchesMap.set(sm.betclic_id, sm);
     }
   }
 
@@ -108,8 +107,8 @@ async function scrapeMatches() {
   const withOdds = results.filter(m => m.odds_home !== null).length;
   console.log(`\n🎉 Total: ${results.length} matchs disponibles (${withOdds} avec cotes réelles)`);
 
-  // If we collected a rich live scrape, update matches-seed.json for future cold boots
-  if (results.length >= 50) {
+  // ONLY save seed if we have at least 140 matches, NEVER shrink the seed!
+  if (results.length >= 140) {
     try {
       const seedPath = path.join(__dirname, 'scraper', 'matches-seed.json');
       fs.writeFileSync(seedPath, JSON.stringify(results, null, 2), 'utf8');

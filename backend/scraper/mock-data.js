@@ -68,7 +68,24 @@ function getAllCompetitionsMockData() {
   ];
 }
 
+function getAllAnalysesMockData() {
+  const seedPath = path.join(__dirname, 'analyses-seed.json');
+  if (fs.existsSync(seedPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+      if (Array.isArray(data) && data.length > 0) {
+        console.log(`🧠 Loaded ${data.length} analyses from analyses-seed.json`);
+        return data;
+      }
+    } catch (e) {
+      console.warn('Error reading analyses-seed.json:', e.message);
+    }
+  }
+  return [];
+}
+
 module.exports = {
   getAllCompetitionsMockData,
+  getAllAnalysesMockData,
   getDateOffset
 };

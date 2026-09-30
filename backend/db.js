@@ -147,6 +147,7 @@ const newAnalysisCols = [
   { name: 'xg_metrics', type: 'TEXT' },
   { name: 'fatigue_schedule', type: 'TEXT' },
   { name: 'market_dynamics', type: 'TEXT' },
+  { name: 'betclic_id', type: 'TEXT' },
 ];
 
 for (const col of newAnalysisCols) {
@@ -155,6 +156,15 @@ for (const col of newAnalysisCols) {
     console.log(`✅ Added column match_analysis.${col.name}`);
   }
 }
+
+// Populate betclic_id in match_analysis from matches table if empty
+try {
+  db.exec(`
+    UPDATE match_analysis 
+    SET betclic_id = (SELECT betclic_id FROM matches WHERE matches.id = match_analysis.match_id)
+    WHERE betclic_id IS NULL;
+  `);
+} catch (_) {}
 
 // Add missing columns to combineds if upgrading existing DB
 const combinedColumns = db.pragma("table_info(combineds)").map(c => c.name);
