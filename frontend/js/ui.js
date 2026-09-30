@@ -121,7 +121,7 @@ function renderMatchCard(match) {
           ${hasDroppingOdds ? `<span class="badge-drop-pulse">📉 -${maxDrop}% COTE</span>` : ''}
           ${isLineupConfirmed ? `<span class="badge-lineup-confirmed" title="11 titulaires officiels confirmés">📋 Compos H-1</span>` : ''}
           ${isToday && !hasFinalScore ? `<span class="badge-today">⏰ Aujourd'hui</span>` : ''}
-          ${hasValueBet ? `<span class="badge-value-pulse">💎 VALUE (${escapeHtml(topVb.value_edge)})</span>` : ''}
+          ${hasValueBet ? `<span class="badge-value-pulse" onclick="event.stopPropagation(); openGuideModal('value')" title="Cliquez pour comprendre le calcul mathématique (+EV)">💎 VALUE BET (+${escapeHtml(topVb.value_edge)}) ℹ️</span>` : ''}
           <span class="match-date-text">${dateFormatted}</span>
           <span class="match-time-text">${match.match_time || '—'}</span>
         </div>
@@ -143,18 +143,27 @@ function renderMatchCard(match) {
       </div>
 
       <div class="card-odds">
-        <div class="odd-box ${match.odds_drop_home >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '1', ${match.odds_home}, event)" title="${escapeHtml(match.home_team)}">
-          <span class="odd-label">1</span>
+        <div class="odd-box ${match.odds_drop_home >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '1', ${match.odds_home}, event)" title="1 = Victoire Domicile (${escapeHtml(match.home_team)}) sur 90 min">
+          <div class="odd-label-col">
+            <span class="odd-label">1</span>
+            <span class="odd-sublabel">Dom</span>
+          </div>
           <span class="odd-value ${bestOdd === match.odds_home ? 'best-odd' : ''}">${match.odds_home ? match.odds_home.toFixed(2) : '—'}</span>
           ${match.odds_drop_home >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_home}%</span>` : ''}
         </div>
-        <div class="odd-box ${match.odds_drop_draw >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, 'N', ${match.odds_draw}, event)" title="Match nul">
-          <span class="odd-label">N</span>
+        <div class="odd-box ${match.odds_drop_draw >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, 'N', ${match.odds_draw}, event)" title="N = Match nul sur 90 min">
+          <div class="odd-label-col">
+            <span class="odd-label">N</span>
+            <span class="odd-sublabel">Nul</span>
+          </div>
           <span class="odd-value ${bestOdd === match.odds_draw ? 'best-odd' : ''}">${match.odds_draw ? match.odds_draw.toFixed(2) : '—'}</span>
           ${match.odds_drop_draw >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_draw}%</span>` : ''}
         </div>
-        <div class="odd-box ${match.odds_drop_away >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '2', ${match.odds_away}, event)" title="${escapeHtml(match.away_team)}">
-          <span class="odd-label">2</span>
+        <div class="odd-box ${match.odds_drop_away >= 7 ? 'has-drop' : ''}" onclick="handleOddTap(${match.id}, '2', ${match.odds_away}, event)" title="2 = Victoire Extérieur (${escapeHtml(match.away_team)}) sur 90 min">
+          <div class="odd-label-col">
+            <span class="odd-label">2</span>
+            <span class="odd-sublabel">Ext</span>
+          </div>
           <span class="odd-value ${bestOdd === match.odds_away ? 'best-odd' : ''}">${match.odds_away ? match.odds_away.toFixed(2) : '—'}</span>
           ${match.odds_drop_away >= 7 ? `<span class="odd-drop-tag">📉 -${match.odds_drop_away}%</span>` : ''}
         </div>
@@ -180,7 +189,7 @@ function renderMatchCard(match) {
           tags.push(`<span class="card-tag tag-danger">🚫 Buts imprévisibles</span>`);
         }
         if (hasValueBet) {
-          tags.push(`<span class="card-tag tag-value">💎 ${raw.value_bets_structured.length} Value Bet(s)</span>`);
+          tags.push(`<span class="card-tag tag-value" onclick="event.stopPropagation(); openGuideModal('value')" style="cursor:pointer;" title="Cliquez pour comprendre ce que signifie un Value Bet">💎 ${raw.value_bets_structured.length} Value Bet(s) ℹ️</span>`);
         }
         const cleanCardPred = formatBetSelectionLabel(match.ai_prediction, '1N2', match.home_team, match.away_team);
         const cardOdd = getOddForSelection(match.ai_prediction, '1N2', match);
@@ -648,5 +657,296 @@ window.addEventListener('scroll', () => {
     }
   }
 }, { passive: true });
+
+// ================================================================
+// GUIDE & LEXIQUE DES PARIS (1N2, BTTS, VALUE BETS...)
+// ================================================================
+
+let activeGuideTab = '1n2';
+
+function openGuideModal(tab = '1n2') {
+  activeGuideTab = tab;
+  const overlay = document.getElementById('guide-modal-overlay');
+  if (!overlay) return;
+
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  switchGuideTab(tab);
+}
+
+function closeGuideModal(event) {
+  if (event && event.target && event.target.id !== 'guide-modal-overlay' && !event.target.classList.contains('modal-close')) {
+    return;
+  }
+  const overlay = document.getElementById('guide-modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function switchGuideTab(tabKey) {
+  activeGuideTab = tabKey;
+  document.querySelectorAll('.g-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.gtab === tabKey);
+  });
+
+  const content = document.getElementById('guide-modal-content');
+  if (content) {
+    content.innerHTML = renderGuideContent(tabKey);
+  }
+}
+
+function renderGuideContent(tabKey) {
+  if (tabKey === '1n2') {
+    return `
+      <div class="guide-panel-fade">
+        <div class="guide-hero-banner">
+          <div class="ghb-icon">⚽</div>
+          <div class="ghb-text">
+            <h3>Le pari « 1N2 » & les Doubles Chances</h3>
+            <p>Le pari reine du football : prédire l'issue de la rencontre à la fin du temps réglementaire.</p>
+          </div>
+        </div>
+
+        <div class="guide-grid-3">
+          <div class="guide-card-tile">
+            <div class="gct-badge gct-home">1</div>
+            <h4>Victoire Domicile</h4>
+            <p>L'équipe qui reçoit remporte le match (ex: PSG gagne contre Lens 2-1).</p>
+          </div>
+
+          <div class="guide-card-tile">
+            <div class="gct-badge gct-draw">N</div>
+            <h4>Match Nul</h4>
+            <p>Score d'égalité au coup de sifflet final (ex: 0-0, 1-1, 2-2...).</p>
+          </div>
+
+          <div class="guide-card-tile">
+            <div class="gct-badge gct-away">2</div>
+            <h4>Victoire Extérieur</h4>
+            <p>L'équipe en déplacement gagne la rencontre (ex: Lens gagne 0-1 à Paris).</p>
+          </div>
+        </div>
+
+        <div class="guide-rule-box">
+          <span class="grb-icon">⚠️</span>
+          <div class="grb-content">
+            <strong>Règle d'or absolue des 90 minutes :</strong>
+            <p>Le résultat 1N2 est validé <strong>exclusivement sur les 90 minutes de jeu officiel + le temps additionnel</strong>. Les prolongations et séances de tirs au but en match de coupe NE COMPTENT PAS. Si deux équipes font 1-1 à la 90e minute et qu'une équipe gagne 2-1 en prolongations, le pari gagnant 1N2 reste le <strong>N (Match Nul)</strong>.</p>
+          </div>
+        </div>
+
+        <div class="guide-section-block">
+          <h4 class="gsb-title">🛡️ Les « Doubles Chances » pour sécuriser vos paris</h4>
+          <p class="gsb-desc">La Double Chance permet de couvrir <strong>2 résultats possibles sur 3</strong> en un seul pari :</p>
+
+          <div class="guide-table-wrap">
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th>Sélection</th>
+                  <th>Signification</th>
+                  <th>Scénarios Gagnants</th>
+                  <th>Usage Recommandé</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong class="text-win">1X</strong></td>
+                  <td>Équipe Domicile OU Match Nul</td>
+                  <td>Victoire Domicile ou Nul (seule la défaite fait perdre)</td>
+                  <td>Favori à domicile ou match serré avec avantage terrain</td>
+                </tr>
+                <tr>
+                  <td><strong class="text-win">X2</strong></td>
+                  <td>Match Nul OU Équipe Extérieur</td>
+                  <td>Match Nul ou Victoire Extérieur</td>
+                  <td>Outsider coriace en déplacement ou favori qui voyage</td>
+                </tr>
+                <tr>
+                  <td><strong class="text-win">12</strong></td>
+                  <td>Pas de Match Nul</td>
+                  <td>Une des deux équipes gagne impérativement</td>
+                  <td>Matchs très ouverts et offensifs sans compromis</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (tabKey === 'btts') {
+    return `
+      <div class="guide-panel-fade">
+        <div class="guide-hero-banner">
+          <div class="ghb-icon">🥅</div>
+          <div class="ghb-text">
+            <h3>Le « BTTS » — Les Deux Équipes Marquent</h3>
+            <p>Acronyme anglais de <em>Both Teams To Score</em>. Ce marché est l'un des plus appréciés car <strong>il ne dépend pas du vainqueur</strong> !</p>
+          </div>
+        </div>
+
+        <div class="guide-grid-2">
+          <div class="guide-card-tile positive">
+            <div class="gct-badge gct-btts-yes">BTTS : OUI</div>
+            <h4>Les deux équipes marquent au moins 1 but</h4>
+            <p>Peu importe le résultat final ou qui gagne le match.</p>
+            <div class="gct-examples">
+              <span class="ex-tag win">✅ 1 - 1</span>
+              <span class="ex-tag win">✅ 2 - 1</span>
+              <span class="ex-tag win">✅ 1 - 3</span>
+              <span class="ex-tag win">✅ 4 - 2</span>
+            </div>
+            <div class="gct-note">Dès que le match passe à 1-1, votre pari est gagné, même à la 15e minute !</div>
+          </div>
+
+          <div class="guide-card-tile neutral">
+            <div class="gct-badge gct-btts-no">BTTS : NON</div>
+            <h4>Au moins une des deux équipes ne marque pas</h4>
+            <p>Il suffit qu'une seule équipe garde sa cage inviolée (Clean Sheet).</p>
+            <div class="gct-examples">
+              <span class="ex-tag win">✅ 0 - 0</span>
+              <span class="ex-tag win">✅ 1 - 0</span>
+              <span class="ex-tag win">✅ 2 - 0</span>
+              <span class="ex-tag win">✅ 0 - 3</span>
+            </div>
+            <div class="gct-note text-warn">Si le score devient 1-1, le pari est définitivement perdu.</div>
+          </div>
+        </div>
+
+        <div class="guide-section-block">
+          <h4 class="gsb-title">💡 Quand faut-il jouer le BTTS selon l'IA ?</h4>
+          <ul class="guide-bullet-list">
+            <li><strong>BTTS OUI</strong> : À privilégier lorsque deux formations ont une attaque performante (xG &gt; 1.6) mais des défenses fragiles ou des titulaires défensifs blessés.</li>
+            <li><strong>BTTS NON</strong> : Idéal sur les matchs tactiques, les confrontations aller-retour frileuses, ou lorsqu'un cador affronte une équipe incapable de marquer à l'extérieur.</li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  if (tabKey === 'value') {
+    return `
+      <div class="guide-panel-fade">
+        <div class="guide-hero-banner value-banner">
+          <div class="ghb-icon">💎</div>
+          <div class="ghb-text">
+            <h3>Qu'est-ce qu'un « Value Bet » (Edge Mathématique +EV) ?</h3>
+            <p>Bien plus qu'un simple pronostic "facile" ou "risqué" : c'est <strong>la seule méthode mathématiquement prouvée</strong> pour battre les bookmakers sur le long terme.</p>
+          </div>
+        </div>
+
+        <div class="guide-formula-card">
+          <div class="gfc-header">
+            <span>📐</span> <strong>Le Principe Fondamental de la Cote et de la Probabilité</strong>
+          </div>
+          <p>Toute cote Betclic correspond à une probabilité estimée par le bookmaker :</p>
+          <div class="math-formula-box">
+            Probabilité implicite du bookmaker = (1 / Cote) × 100%
+          </div>
+          <div class="formula-examples-row">
+            <span>Exemple : Cote à <strong>2.00</strong> = 50% de chances</span>
+            <span>Cote à <strong>2.50</strong> = 40% de chances</span>
+            <span>Cote à <strong>1.40</strong> = 71.4% de chances</span>
+          </div>
+        </div>
+
+        <div class="guide-section-block">
+          <h4 class="gsb-title">🎯 Comment l'IA détecte une « Valeur » (Edge) ?</h4>
+          <p class="gsb-desc">L'IA ne se contente pas des classements. Elle analyse les données profondes (xG réels, blessures clés, fatigue du calendrier, météo et flux de cotes Smart Money). Elle calcule la <strong>vraie probabilité statistique</strong> de l'événement :</p>
+
+          <div class="value-comparison-box">
+            <div class="vcb-col">
+              <span class="vcb-title">Estimation Betclic</span>
+              <span class="vcb-val text-muted">Cote 2.50</span>
+              <span class="vcb-sub">Betclic pense qu'il n'y a que <strong>40% de chances</strong></span>
+            </div>
+
+            <div class="vcb-vs">VS</div>
+
+            <div class="vcb-col highlight">
+              <span class="vcb-title">Probabilité Réelle IA</span>
+              <span class="vcb-val text-win">55% Réels</span>
+              <span class="vcb-sub">L'analyse démontre <strong>55% de chances</strong></span>
+            </div>
+
+            <div class="vcb-col edge">
+              <span class="vcb-title">Avantage Mathématique</span>
+              <span class="vcb-val text-win">+37.5% d'Edge</span>
+              <span class="vcb-sub">Espérance de gain positive (+EV)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-section-block">
+          <h4 class="gsb-title">📊 Démonstration sur 100 paris (Pourquoi vous gagnez à coup sûr)</h4>
+          <p class="gsb-desc">Imaginez miser 10 € sur 100 matchs présentant ce type de Value Bet :</p>
+
+          <div class="simu-results-grid">
+            <div class="srg-card">
+              <span class="srg-num win">55 victoires</span>
+              <span class="srg-desc">55 × (10€ × 2.50) = <strong>1 375 € de gains bruts</strong></span>
+            </div>
+            <div class="srg-card">
+              <span class="srg-num loss">45 défaites</span>
+              <span class="srg-desc">45 × 10€ = <strong>450 € de pertes</strong></span>
+            </div>
+            <div class="srg-card total">
+              <span class="srg-num total">+375 € NET</span>
+              <span class="srg-desc"><strong>+37.5% de Rendement (ROI)</strong> Garanti sur le volume !</span>
+            </div>
+          </div>
+
+          <div class="guide-warning-note">
+            <strong>❌ Le piège du "Pari Sécurisé sans valeur" :</strong>
+            Parier sur un grand favori à cote 1.20 n'est PAS un bon pari si sa vraie probabilité n'est que de 70%. Même s'il gagne souvent, vous perdrez 16% de votre capital sur la durée ! C'est pour cela que l'algorithme privilégie toujours l'<strong>Edge mathématique (+EV)</strong>.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (tabKey === 'goals') {
+    return `
+      <div class="guide-panel-fade">
+        <div class="guide-hero-banner">
+          <div class="ghb-icon">📊</div>
+          <div class="ghb-text">
+            <h3>Over / Under & Remboursé si Nul (DNB)</h3>
+            <p>Les marchés de protection idéaux pour booster vos combinés avec une variance minimale.</p>
+          </div>
+        </div>
+
+        <div class="guide-grid-2">
+          <div class="guide-card-tile">
+            <h4>⚽ Plus de 1.5 Buts (Over 1.5)</h4>
+            <p>Il suffit qu'au moins 2 buts soient marqués au total dans le match (1-1, 2-0, 0-2...).</p>
+            <div class="gct-note text-win">Taux de réussite moyen : 80% à 85% dans les grands championnats.</div>
+          </div>
+
+          <div class="guide-card-tile">
+            <h4>🛑 Moins de 3.5 Buts (Under 3.5)</h4>
+            <p>Le match doit compter 3 buts ou moins au total (0-0, 1-0, 2-1, 3-0...).</p>
+            <div class="gct-note text-win">Filet de sécurité exceptionnel pour les combinés sans faute.</div>
+          </div>
+        </div>
+
+        <div class="guide-section-block">
+          <h4 class="gsb-title">🛡️ Remboursé si Nul (Draw No Bet / DNB)</h4>
+          <p class="gsb-desc">Vous pariez sur la victoire d'une équipe, mais si la rencontre se termine sur un match nul, <strong>votre mise vous est intégralement restituée (cote de 1.00)</strong> :</p>
+          <ul class="guide-bullet-list">
+            <li>Victoire de votre équipe : <strong>Pari Gagné</strong>.</li>
+            <li>Match Nul : <strong>Mise Remboursée à 100%</strong> (aucune perte).</li>
+            <li>Défaite de votre équipe : <strong>Pari Perdu</strong>.</li>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  return '';
+}
 
 

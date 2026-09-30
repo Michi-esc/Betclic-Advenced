@@ -124,14 +124,22 @@ function showAnalysisData(match) {
         <div class="market-row full value-bets-structured">
           <div class="market-row-icon">💎</div>
           <div class="market-row-body">
-            <div class="market-row-title">Value Bets détectés (edge positif)</div>
+            <div class="market-row-title-row">
+              <div class="market-row-title">Value Bets Détectés (Edge Mathématique +EV)</div>
+              <button class="btn-guide-pill" onclick="openGuideModal('value')" title="Pourquoi un Value Bet est-il mathématiquement rentable ?">
+                💡 Comprendre l'Edge (+EV)
+              </button>
+            </div>
+            <div class="vb-clarity-explanation">
+              💡 <strong>Ce n'est pas un pari "au hasard" ou "audacieux" :</strong> Betclic a sous-estimé cette probabilité. L'analyse statistique (xG, effectif, calendrier) démontre que l'événement a plus de chances réelles de se produire que ce que reflète la cote du bookmaker. Miser régulièrement sur ce type d'écart garantit un rendement positif sur le volume.
+            </div>
             ${raw.value_bets_structured.map(vb => `
               <div class="value-bet-item">
                 <div class="vb-main-info">
                   <span class="vb-market">${escapeHtml(vb.market)}</span>
                   <span class="vb-selection">${escapeHtml(vb.selection)}</span>
-                  <span class="vb-odds">Cote: <strong>${vb.bookmaker_odds}</strong></span>
-                  <span class="vb-prob">Prob réelle: ${escapeHtml(vb.estimated_real_probability)}</span>
+                  <span class="vb-odds">Cote Betclic: <strong>${vb.bookmaker_odds}</strong></span>
+                  <span class="vb-prob">Probabilité Réelle IA: <strong>${escapeHtml(vb.estimated_real_probability)}</strong></span>
                   <span class="vb-edge edge-positive">${escapeHtml(vb.value_edge)}</span>
                 </div>
                 ${vb.rationale ? `<div class="vb-rationale">${escapeHtml(vb.rationale)}</div>` : ''}
@@ -160,14 +168,14 @@ function showAnalysisData(match) {
     marketsDiv.innerHTML = `
       <div class="card-header">
         <span class="card-icon">🎯</span>
-        <h3>Marchés Alternatifs — Analyse de Risque</h3>
+        <h3>Marchés Alternatifs — Analyse de Risque & Explications</h3>
         <span class="markets-badge">IA</span>
       </div>
       <div class="extended-markets-grid">
-        ${renderMarketRow('🤝', 'Les deux marquent (BTTS)', match.btts_prediction, match.btts_confidence, raw.btts_rationale, raw.btts_risk_level, raw.btts_risk_alert, raw.btts_avoid)}
-        ${renderMarketRow('📈', 'Over/Under 2.5 buts', match.over25_prediction, match.over25_confidence, raw.over25_rationale, raw.over25_risk_level, raw.over25_risk_alert, raw.over25_avoid)}
-        ${renderMarketRow('🛡️', 'Double Chance', match.double_chance_prediction, '', raw.double_chance_rationale, raw.double_chance_risk_level, raw.double_chance_risk_alert, false)}
-        ${renderMarketRow('⚖️', 'Handicap Asiatique', match.asian_handicap_prediction, '', raw.asian_handicap_rationale, raw.asian_handicap_risk_level, raw.asian_handicap_risk_alert, false)}
+        ${renderMarketRow('🤝', 'Les deux marquent (BTTS)', match.btts_prediction, match.btts_confidence, raw.btts_rationale || 'OUI = les 2 équipes marquent au moins 1 but (1-1, 2-1...) • NON = au moins 1 clean sheet (1-0, 0-0...)', raw.btts_risk_level, raw.btts_risk_alert, raw.btts_avoid, 'btts')}
+        ${renderMarketRow('📈', 'Over/Under 2.5 buts', match.over25_prediction, match.over25_confidence, raw.over25_rationale || 'Plus de 2.5 buts = 3 buts ou plus dans le match • Moins de 2.5 = 2 buts ou moins', raw.over25_risk_level, raw.over25_risk_alert, raw.over25_avoid, 'goals')}
+        ${renderMarketRow('🛡️', 'Double Chance', match.double_chance_prediction, '', raw.double_chance_rationale || '1X (Dom ou Nul), X2 (Nul ou Ext), 12 (Pas de nul) — Couvre 2 issues sur 3', raw.double_chance_risk_level, raw.double_chance_risk_alert, false, '1n2')}
+        ${renderMarketRow('⚖️', 'Handicap Asiatique', match.asian_handicap_prediction, '', raw.asian_handicap_rationale, raw.asian_handicap_risk_level, raw.asian_handicap_risk_alert, false, 'goals')}
         ${valueBetsHtml}
       </div>
     `;
@@ -536,6 +544,27 @@ function renderBetSummaryTableCard(match, raw) {
           `).join('')}
         </tbody>
       </table>
+    </div>
+
+    <div class="bet-table-quick-guide">
+      <div class="quick-guide-header">
+        <span class="qg-title">💡 Lexique Rapide des Intitulés Betclic</span>
+        <button class="btn-open-guide-link" onclick="openGuideModal('1n2')">📖 Ouvrir le Guide & Lexique Complet</button>
+      </div>
+      <div class="quick-guide-grid">
+        <div class="qg-item" onclick="openGuideModal('1n2')">
+          <span class="qg-badge">1N2</span>
+          <p><strong>1</strong> = Victoire Domicile • <strong>N</strong> = Nul • <strong>2</strong> = Victoire Extérieur (sur 90 min + arrêts de jeu uniquement, hors prolongations).</p>
+        </div>
+        <div class="qg-item" onclick="openGuideModal('btts')">
+          <span class="qg-badge">BTTS</span>
+          <p><strong>Les deux équipes marquent</strong> : <em>OUI</em> = score min 1-1, 2-1... <em>NON</em> = au moins un 0 (ex: 1-0, 0-0, 0-2...).</p>
+        </div>
+        <div class="qg-item" onclick="openGuideModal('value')">
+          <span class="qg-badge">Value Bet</span>
+          <p><strong>Erreur de cote Betclic</strong> : Cote trop haute payant plus que la probabilité réelle de l'événement (Espérance de gain positive mathématique +EV).</p>
+        </div>
+      </div>
     </div>
   `;
 

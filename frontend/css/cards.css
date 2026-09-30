@@ -428,3 +428,55 @@
   border: 1px solid rgba(255, 215, 64, 0.4);
   color: var(--accent-gold);
 }
+
+/* Card Odd Clarity Sub-labels */
+.odd-label-col {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.odd-sublabel {
+  font-size: 8px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: capitalize;
+  letter-spacing: 0;
+}
+
+.card-market-help-hint {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2px 8px 6px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  user-select: none;
+}
+
+.card-market-help-hint:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
+}
+
+.ai-preview-vb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-preview-vb-badge:hover {
+  background: rgba(16, 185, 129, 0.35);
+  border-color: #34d399;
+  transform: scale(1.03);
+}

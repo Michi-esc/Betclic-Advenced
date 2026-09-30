@@ -21,9 +21,9 @@
     "match_date": "2026-09-30",
     "match_time": "01:30",
     "venue": "J1",
-    "odds_home": 3.1,
-    "odds_draw": 3.8,
-    "odds_away": 1.87
+    "odds_home": 3.17,
+    "odds_draw": 3.85,
+    "odds_away": 1.84
   },
   {
     "id": 184,
@@ -111,9 +111,9 @@
     "match_date": "2026-09-30",
     "match_time": "18:00",
     "venue": "Gr. E, J11",
-    "odds_home": 1.56,
-    "odds_draw": 3.85,
-    "odds_away": 4.6
+    "odds_home": 1.55,
+    "odds_draw": 3.98,
+    "odds_away": 4.45
   },
   {
     "betclic_id": "bc_1238682664173568",
@@ -137,9 +137,9 @@
     "match_date": "2026-09-30",
     "match_time": "18:00",
     "venue": "Gr. B, J11",
-    "odds_home": 1.37,
+    "odds_home": 1.38,
     "odds_draw": 4.05,
-    "odds_away": 7
+    "odds_away": 6.75
   },
   {
     "betclic_id": "bc_1238807772934144",
@@ -1167,6 +1167,19 @@
     "odds_away": 6.25
   },
   {
+    "betclic_id": "bc_1223669781114992",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Manchester United",
+    "away_team": "Tottenham",
+    "match_date": "2026-10-10",
+    "match_time": "18:30",
+    "venue": "J6",
+    "odds_home": 1.67,
+    "odds_draw": 3.93,
+    "odds_away": 4.05
+  },
+  {
     "betclic_id": "bc_1228048091340800",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1191,19 +1204,6 @@
     "odds_home": 1.49,
     "odds_draw": 4.6,
     "odds_away": 4.7
-  },
-  {
-    "betclic_id": "bc_1223669781114992",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Manchester United",
-    "away_team": "Tottenham",
-    "match_date": "2026-10-10",
-    "match_time": "18:30",
-    "venue": "J6",
-    "odds_home": 1.67,
-    "odds_draw": 3.93,
-    "odds_away": 4.05
   },
   {
     "betclic_id": "bc_1227191238021120",
@@ -1396,19 +1396,6 @@
     "odds_away": 6.1
   },
   {
-    "betclic_id": "bc_1227191486545920",
-    "competition": "Bundesliga",
-    "competition_country": "Allemagne",
-    "home_team": "Fribourg",
-    "away_team": "Schalke 04",
-    "match_date": "2026-10-11",
-    "match_time": "17:30",
-    "venue": "J5",
-    "odds_home": 1.58,
-    "odds_draw": 3.95,
-    "odds_away": 4.65
-  },
-  {
     "betclic_id": "bc_1223669542027264",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1420,6 +1407,19 @@
     "odds_home": 2.55,
     "odds_draw": 3.53,
     "odds_away": 2.35
+  },
+  {
+    "betclic_id": "bc_1227191486545920",
+    "competition": "Bundesliga",
+    "competition_country": "Allemagne",
+    "home_team": "Fribourg",
+    "away_team": "Schalke 04",
+    "match_date": "2026-10-11",
+    "match_time": "17:30",
+    "venue": "J5",
+    "odds_home": 1.58,
+    "odds_draw": 3.95,
+    "odds_away": 4.65
   },
   {
     "betclic_id": "bc_1228048288485376",
@@ -1461,19 +1461,6 @@
     "odds_away": 2.97
   },
   {
-    "betclic_id": "bc_1228049047654400",
-    "competition": "LaLiga",
-    "competition_country": "Espagne",
-    "home_team": "Levante",
-    "away_team": "Séville",
-    "match_date": "2026-10-12",
-    "match_time": "21:00",
-    "venue": "J8",
-    "odds_home": 2.52,
-    "odds_draw": 3.17,
-    "odds_away": 2.58
-  },
-  {
     "betclic_id": "bc_1223669183418369",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1485,6 +1472,19 @@
     "odds_home": 3.12,
     "odds_draw": 3.42,
     "odds_away": 2.05
+  },
+  {
+    "betclic_id": "bc_1228049047654400",
+    "competition": "LaLiga",
+    "competition_country": "Espagne",
+    "home_team": "Levante",
+    "away_team": "Séville",
+    "match_date": "2026-10-12",
+    "match_time": "21:00",
+    "venue": "J8",
+    "odds_home": 2.52,
+    "odds_draw": 3.17,
+    "odds_away": 2.58
   },
   {
     "betclic_id": "bc_1230833056763904",
@@ -1682,6 +1682,19 @@
     "odds_away": 1.35
   },
   {
+    "betclic_id": "bc_1229966272401408",
+    "competition": "Premier League",
+    "competition_country": "Angleterre",
+    "home_team": "Newcastle",
+    "away_team": "Aston Villa",
+    "match_date": "2026-10-17",
+    "match_time": "18:30",
+    "venue": "J7",
+    "odds_home": 1.95,
+    "odds_draw": 3.5,
+    "odds_away": 3.12
+  },
+  {
     "betclic_id": "bc_1231457852887040",
     "competition": "LaLiga",
     "competition_country": "Espagne",
@@ -1706,19 +1719,6 @@
     "odds_home": 1.2,
     "odds_draw": 6.4,
     "odds_away": 7.5
-  },
-  {
-    "betclic_id": "bc_1229966272401408",
-    "competition": "Premier League",
-    "competition_country": "Angleterre",
-    "home_team": "Newcastle",
-    "away_team": "Aston Villa",
-    "match_date": "2026-10-17",
-    "match_time": "18:30",
-    "venue": "J7",
-    "odds_home": 1.95,
-    "odds_draw": 3.5,
-    "odds_away": 3.12
   },
   {
     "betclic_id": "bc_1230957595099136",
@@ -1782,7 +1782,7 @@
     "match_time": "15:00",
     "venue": "J7",
     "odds_home": 2.9,
-    "odds_draw": 3.5,
+    "odds_draw": 3.47,
     "odds_away": 2.13
   },
   {
@@ -1890,19 +1890,6 @@
     "odds_away": 2.95
   },
   {
-    "betclic_id": "bc_1230911149473818",
-    "competition": "Bundesliga",
-    "competition_country": "Allemagne",
-    "home_team": "Borussia M'gladbach",
-    "away_team": "Hoffenheim",
-    "match_date": "2026-10-18",
-    "match_time": "17:30",
-    "venue": "J6",
-    "odds_home": 3.35,
-    "odds_draw": 3.83,
-    "odds_away": 1.78
-  },
-  {
     "betclic_id": "bc_1229969518780416",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1914,6 +1901,19 @@
     "odds_home": 5,
     "odds_draw": 3.7,
     "odds_away": 1.54
+  },
+  {
+    "betclic_id": "bc_1230911149473818",
+    "competition": "Bundesliga",
+    "competition_country": "Allemagne",
+    "home_team": "Borussia M'gladbach",
+    "away_team": "Hoffenheim",
+    "match_date": "2026-10-18",
+    "match_time": "17:30",
+    "venue": "J6",
+    "odds_home": 3.35,
+    "odds_draw": 3.83,
+    "odds_away": 1.78
   },
   {
     "betclic_id": "bc_1231460293971968",
@@ -1955,19 +1955,6 @@
     "odds_away": 8.5
   },
   {
-    "betclic_id": "bc_1231459620769792",
-    "competition": "LaLiga",
-    "competition_country": "Espagne",
-    "home_team": "Getafe",
-    "away_team": "Rayo Vallecano",
-    "match_date": "2026-10-19",
-    "match_time": "21:00",
-    "venue": "J9",
-    "odds_home": 2.45,
-    "odds_draw": 2.95,
-    "odds_away": 2.68
-  },
-  {
     "betclic_id": "bc_1229970188828672",
     "competition": "Premier League",
     "competition_country": "Angleterre",
@@ -1979,5 +1966,18 @@
     "odds_home": 1.42,
     "odds_draw": 4.3,
     "odds_away": 5.4
+  },
+  {
+    "betclic_id": "bc_1231459620769792",
+    "competition": "LaLiga",
+    "competition_country": "Espagne",
+    "home_team": "Getafe",
+    "away_team": "Rayo Vallecano",
+    "match_date": "2026-10-19",
+    "match_time": "21:00",
+    "venue": "J9",
+    "odds_home": 2.45,
+    "odds_draw": 2.95,
+    "odds_away": 2.68
   }
 ]

@@ -58,6 +58,10 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn btn-guide" id="btn-guide" onclick="openGuideModal()" title="Comprendre précisément le 1N2, le BTTS et les Value Bets">
+          <span class="btn-icon">💡</span>
+          <span>Guide des Paris</span>
+        </button>
         <button class="btn btn-scrape" id="btn-scrape" onclick="triggerScrape()">
           <span class="btn-icon">🔄</span>
           <span>Actualiser</span>
@@ -105,7 +109,7 @@
       </div>
     </div>
 
-    <!-- Quick Filters Bar (Value Bets, Matchs du Jour, Analysés) -->
+    <!-- Quick Filters Bar (Value Bets, Matchs du Jour, Analysés, Guide) -->
     <div class="quick-filters-row">
       <button class="quick-filter-chip active" data-qf="all" onclick="setQuickFilter('all')">
         <span>🌟</span>
@@ -122,6 +126,10 @@
       <button class="quick-filter-chip" data-qf="analyzed" onclick="setQuickFilter('analyzed')">
         <span>🧠</span>
         <span>Analysés par l'IA</span>
+      </button>
+      <button class="quick-filter-chip guide-chip" onclick="openGuideModal()">
+        <span>💡</span>
+        <span>Comprendre 1N2, BTTS & Value</span>
       </button>
     </div>
   </div>
@@ -349,6 +357,42 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ===== GUIDE & LEXIQUE DES PARIS MODAL ===== -->
+  <div class="modal-overlay hidden" id="guide-modal-overlay" onclick="closeGuideModal(event)">
+    <div class="modal guide-modal-dialog" id="guide-modal">
+      <button class="modal-close" onclick="closeGuideModal()">✕</button>
+
+      <div class="guide-modal-header">
+        <div class="guide-header-title-row">
+          <div class="guide-icon-badge">💡</div>
+          <div>
+            <h2 class="guide-main-title">Guide des Paris & Lexique Mathématique</h2>
+            <p class="guide-subtitle">Comprenez précisément ce que signifient 1N2, BTTS et pourquoi les Value Bets battent les bookmakers sur le long terme.</p>
+          </div>
+        </div>
+
+        <div class="guide-nav-tabs">
+          <button class="g-tab-btn active" data-gtab="1n2" onclick="switchGuideTab('1n2')">
+            <span>⚽</span> 1N2 & Double Chance
+          </button>
+          <button class="g-tab-btn" data-gtab="btts" onclick="switchGuideTab('btts')">
+            <span>🥅</span> BTTS (Les 2 marquent)
+          </button>
+          <button class="g-tab-btn" data-gtab="value" onclick="switchGuideTab('value')">
+            <span>💎</span> Value Bets & Edge (+EV)
+          </button>
+          <button class="g-tab-btn" data-gtab="goals" onclick="switchGuideTab('goals')">
+            <span>📊</span> Over / Under & Buts
+          </button>
+        </div>
+      </div>
+
+      <div class="guide-modal-body" id="guide-modal-content">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
     </div>
   </div>
 

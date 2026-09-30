@@ -934,6 +934,31 @@ function renderMatchesWithTabs(catalogs) {
           </button>
         </div>
 
+        <!-- CONTEXTUAL HELP BANNER FOR ACTIVE TAB -->
+        <div class="bm-tab-explainer">
+          ${activeTab === 'result' ? `
+            <div class="tab-explainer-item" onclick="openGuideModal('1n2')">
+              <span>🏆 <strong>1N2</strong> : Résultat sur 90 min (1=Dom, N=Nul, 2=Ext). <em>Double Chance (1N, N2, 12)</em> couvre 2 issues sur 3.</span>
+              <button class="btn-tab-help-link" type="button">ℹ️ Guide 1N2</button>
+            </div>
+          ` : activeTab === 'goals' ? `
+            <div class="tab-explainer-item" onclick="openGuideModal('btts')">
+              <span>⚽ <strong>Buts</strong> : <em>Over 2.5</em> = 3 buts ou plus • <em>BTTS</em> = OUI (les 2 marquent min 1-1) / NON (clean sheet).</span>
+              <button class="btn-tab-help-link" type="button">ℹ️ Guide Buts</button>
+            </div>
+          ` : activeTab === 'security' ? `
+            <div class="tab-explainer-item" onclick="openGuideModal('1n2')">
+              <span>🛡️ <strong>Sécurité</strong> : Sélections haute fiabilité (65%+) idéales pour socle de combiné sans trop de volatilité.</span>
+              <button class="btn-tab-help-link" type="button">ℹ️ Conseils</button>
+            </div>
+          ` : `
+            <div class="tab-explainer-item" onclick="openGuideModal('value')">
+              <span>💎 <strong>Value Bet</strong> : Cote Betclic surévaluée par rapport aux stats réelles IA (+EV long terme).</span>
+              <button class="btn-tab-help-link" type="button">ℹ️ Calcul +EV</button>
+            </div>
+          `}
+        </div>
+
         <!-- ACTIVE TAB BETS GRID -->
         <div class="bm-bets-content">
           ${currentTabBets.length === 0 ? `
