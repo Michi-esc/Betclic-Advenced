@@ -38,6 +38,8 @@ function switchCombinedTab(tab) {
   });
 
   if (tab === 'builder') renderBuilderMatchList();
+  if (tab === 'system') renderSystemSectionContent();
+  if (tab === 'hedging') renderHedgingSectionContent();
   if (tab === 'history') renderCombinedHistory();
 }
 
@@ -53,8 +55,8 @@ function renderCombinedPage() {
     <div class="combined-hero">
       <div class="combined-hero-icon">⚡</div>
       <div class="combined-hero-text">
-        <h1 class="combined-hero-title">Combinés <span class="gradient-text">IA</span></h1>
-        <p class="combined-hero-sub">L'intelligence artificielle analyse vos matchs et construit les meilleurs combinés</p>
+        <h1 class="combined-hero-title">Combinés <span class="gradient-text">IA & Systèmes</span></h1>
+        <p class="combined-hero-sub">L'intelligence artificielle analyse vos matchs, crée vos combinés optimaux, calcule les paris système et simule votre Cashout / Couverture</p>
       </div>
       <div class="combined-stats-bar">
         <div class="cstat">
@@ -76,6 +78,12 @@ function renderCombinedPage() {
       <button class="combined-tab" data-tab="builder" onclick="switchCombinedTab('builder')">
         <span>🛠️</span> Constructeur Manuel
       </button>
+      <button class="combined-tab" data-tab="system" onclick="switchCombinedTab('system')">
+        <span>🛡️</span> Paris Système (2/3, 3/4, Yankee...)
+      </button>
+      <button class="combined-tab" data-tab="hedging" onclick="switchCombinedTab('hedging')">
+        <span>⚖️</span> Simulateur Cashout & Couverture
+      </button>
       <button class="combined-tab" data-tab="history" onclick="switchCombinedTab('history')">
         <span>📋</span> Mes Combinés
       </button>
@@ -89,6 +97,16 @@ function renderCombinedPage() {
     <!-- ===== SECTION: MANUAL BUILDER ===== -->
     <div class="combined-section hidden" data-section="builder">
       ${renderBuilderSection()}
+    </div>
+
+    <!-- ===== SECTION: SYSTEM BETS ===== -->
+    <div class="combined-section hidden" data-section="system" id="system-section-container">
+      ${renderSystemSection()}
+    </div>
+
+    <!-- ===== SECTION: HEDGING & CASHOUT SIMULATOR ===== -->
+    <div class="combined-section hidden" data-section="hedging" id="hedging-section-container">
+      ${renderHedgingSection()}
     </div>
 
     <!-- ===== SECTION: HISTORY ===== -->
@@ -844,6 +862,12 @@ function renderCombinedResult(combined, container) {
               </div>
             </div>
           ` : ''}
+          <div class="rc-action-row">
+            <button class="btn-jump-hedging" onclick="openHedgingSimulatorWithCurrent()">
+              <span>⚖️</span>
+              <span>Ouvrir dans le Simulateur Interactif de Couverture & Cashout</span>
+            </button>
+          </div>
         </div>
       ` : ''}
 
@@ -870,6 +894,12 @@ function renderCombinedResult(combined, container) {
               <span class="rsm-label">Gain si sans faute (100%)</span>
               <span class="rsm-val">${combined.system_bet.payout_if_all_win}€</span>
             </div>
+          </div>
+          <div class="rs-action-row">
+            <button class="btn-jump-system" onclick="openSystemWithCurrent()">
+              <span>🛡️</span>
+              <span>Personnaliser ce Système (Trixie, Yankee, 2/4...)</span>
+            </button>
           </div>
         </div>
       ` : ''}
@@ -1064,7 +1094,7 @@ function saveCombinedToBankroll(combined) {
   const totalOdds = typeof combined.total_odds === 'number' ? parseFloat(combined.total_odds.toFixed(2)) : parseFloat(combined.total_odds);
   const stake = combinedState.stake || combined.stake || 10;
   const selections = Array.isArray(combined.selections) ? combined.selections : [];
-  const selSummary = selections.map(s => `${(s.home_team || '').split(' ')[0]} vs ${(s.away_team || '').split(' ')[0]}: ${s.selection} @${s.odds}`).join(' | ');
+  const selSummary = selections.map(s => `${(s.home_team || '').split(' ')[0]} vs ${(s.away_team || '').split(' ')[0]}: ${formatBetSelectionLabel(s.selection, s.market, s.home_team, s.away_team)} @${Number(s.odds).toFixed(2)}`).join(' | ');
 
   if (typeof openAddBetModal === 'function') {
     openAddBetModal({
@@ -1080,4 +1110,850 @@ function saveCombinedToBankroll(combined) {
     showToast('Module bankroll en chargement...', 'info');
   }
 }
+
+// ================================================================
+// SYSTEM BETS ENGINE (TRIXIE, YANKEE, 2/3, 3/4, PATENT, CANADIAN)
+// ================================================================
+
+const SYSTEM_DEFINITIONS = {
+  // 3 selections
+  '2/3': { name: 'Système 2/3', minSel: 3, maxSel: 3, k: [2], label: '3 doubles (Gagne dès 2 bons résultats sur 3)' },
+  'trixie': { name: 'Trixie', minSel: 3, maxSel: 3, k: [2, 3], label: '3 doubles + 1 triple = 4 paris (Dès 2/3)' },
+  'patent': { name: 'Patent', minSel: 3, maxSel: 3, k: [1, 2, 3], label: '3 simples + 3 doubles + 1 triple = 7 paris (Dès 1/3)' },
+
+  // 4 selections
+  '3/4': { name: 'Système 3/4', minSel: 4, maxSel: 4, k: [3], label: '4 triples (Encaisse même avec 1 erreur sur 4 !)' },
+  '2/4': { name: 'Système 2/4', minSel: 4, maxSel: 4, k: [2], label: '6 doubles (Encaisse dès 2 bons résultats sur 4)' },
+  'yankee': { name: 'Yankee', minSel: 4, maxSel: 4, k: [2, 3, 4], label: '6 doubles + 4 triples + 1 quadruple = 11 paris' },
+  'lucky15': { name: 'Lucky 15', minSel: 4, maxSel: 4, k: [1, 2, 3, 4], label: '4 simples + 6 doubles + 4 triples + 1 quadruple = 15 paris' },
+
+  // 5 selections
+  '4/5': { name: 'Système 4/5', minSel: 5, maxSel: 5, k: [4], label: '5 quadruples (Tolère 1 erreur sur 5)' },
+  '3/5': { name: 'Système 3/5', minSel: 5, maxSel: 5, k: [3], label: '10 triples (Tolère 2 erreurs sur 5)' },
+  'canadian': { name: 'Canadian / Super Yankee', minSel: 5, maxSel: 5, k: [2, 3, 4, 5], label: '10 doubles + 10 triples + 5 quadruples + 1 quintuple = 26 paris' },
+
+  // 6 selections
+  '5/6': { name: 'Système 5/6', minSel: 6, maxSel: 6, k: [5], label: '6 combinés de 5 (Tolère 1 erreur sur 6)' },
+  '4/6': { name: 'Système 4/6', minSel: 6, maxSel: 6, k: [4], label: '15 quadruples (Tolère 2 erreurs sur 6)' },
+  'heinz': { name: 'Heinz', minSel: 6, maxSel: 6, k: [2, 3, 4, 5, 6], label: '57 combinaisons de 2 à 6 sélections' },
+
+  // Default auto
+  'auto': { name: 'Formule Optimale (N-1 / N)', minSel: 3, maxSel: 12, k: null, label: 'Formule réductrice standard N-1' }
+};
+
+let systemState = {
+  selections: [],
+  systemKey: 'auto',
+  totalStake: 20
+};
+
+function getCombinations(array, k) {
+  if (k === 0) return [[]];
+  if (array.length === 0) return [];
+  const head = array[0];
+  const tail = array.slice(1);
+  const withHead = getCombinations(tail, k - 1).map(c => [head, ...c]);
+  const withoutHead = getCombinations(tail, k);
+  return [...withHead, ...withoutHead];
+}
+
+function calculateSystemBet(selections, systemKey, totalStake) {
+  const n = selections.length;
+  if (n < 3) return null;
+
+  let sysDef = SYSTEM_DEFINITIONS[systemKey];
+  if (!sysDef || (sysDef.minSel && (n < sysDef.minSel || n > sysDef.maxSel))) {
+    sysDef = { name: `Système ${n - 1}/${n}`, k: [n - 1], label: `${n} combinaisons de ${n - 1} sélections` };
+  }
+
+  const kList = sysDef.k || [n - 1];
+  let allSubBets = [];
+  kList.forEach(k => {
+    if (k <= n) {
+      const combs = getCombinations(selections.map((s, idx) => ({ ...s, _origIdx: idx })), k);
+      allSubBets.push(...combs);
+    }
+  });
+
+  const totalBetsCount = allSubBets.length;
+  if (totalBetsCount === 0) return null;
+
+  const stakePerBet = parseFloat((totalStake / totalBetsCount).toFixed(2));
+  const effectiveTotalStake = parseFloat((stakePerBet * totalBetsCount).toFixed(2));
+
+  let maxPayout = 0;
+  const detailedBets = allSubBets.map((comb, i) => {
+    const oddsProduct = comb.reduce((acc, s) => acc * (Number(s.odds) || 1), 1);
+    const payout = parseFloat((stakePerBet * oddsProduct).toFixed(2));
+    maxPayout += payout;
+    return {
+      index: i + 1,
+      size: comb.length,
+      selections: comb,
+      odds: parseFloat(oddsProduct.toFixed(2)),
+      stake: stakePerBet,
+      payout: payout
+    };
+  });
+  maxPayout = parseFloat(maxPayout.toFixed(2));
+
+  // 1-Error scenarios
+  const oneErrorScenarios = selections.map((sel, failedIdx) => {
+    let payoutIfFails = 0;
+    let winningTicketsCount = 0;
+    detailedBets.forEach(bet => {
+      const containsFailed = bet.selections.some(s => s._origIdx === failedIdx);
+      if (!containsFailed) {
+        payoutIfFails += bet.payout;
+        winningTicketsCount++;
+      }
+    });
+    payoutIfFails = parseFloat(payoutIfFails.toFixed(2));
+    return {
+      failedIdx,
+      failedMatch: `${sel.home_team || ''} vs ${sel.away_team || ''}`,
+      failedSelection: formatBetSelectionLabel(sel.selection, sel.market, sel.home_team, sel.away_team),
+      winningTicketsCount,
+      payout: payoutIfFails,
+      profit: parseFloat((payoutIfFails - effectiveTotalStake).toFixed(2)),
+      isProfitable: payoutIfFails >= effectiveTotalStake
+    };
+  });
+
+  const minPayout1Error = Math.min(...oneErrorScenarios.map(s => s.payout));
+  const maxPayout1Error = Math.max(...oneErrorScenarios.map(s => s.payout));
+  const allProfitable1Error = oneErrorScenarios.every(s => s.isProfitable);
+
+  // 2-Errors scenarios
+  let twoErrorScenarios = [];
+  if (kList.some(k => k <= n - 2)) {
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        let payout = 0;
+        let count = 0;
+        detailedBets.forEach(bet => {
+          const containsAnyFailed = bet.selections.some(s => s._origIdx === i || s._origIdx === j);
+          if (!containsAnyFailed) {
+            payout += bet.payout;
+            count++;
+          }
+        });
+        twoErrorScenarios.push({
+          failedMatches: [`${selections[i].home_team || ''}`, `${selections[j].home_team || ''}`],
+          winningTicketsCount: count,
+          payout: parseFloat(payout.toFixed(2))
+        });
+      }
+    }
+  }
+
+  const minPayout2Error = twoErrorScenarios.length ? Math.min(...twoErrorScenarios.map(s => s.payout)) : 0;
+  const maxPayout2Error = twoErrorScenarios.length ? Math.max(...twoErrorScenarios.map(s => s.payout)) : 0;
+
+  return {
+    systemName: sysDef.name,
+    systemKey,
+    totalBetsCount,
+    stakePerBet,
+    totalStake: effectiveTotalStake,
+    maxPayout,
+    maxProfit: parseFloat((maxPayout - effectiveTotalStake).toFixed(2)),
+    maxRoi: parseFloat((((maxPayout - effectiveTotalStake) / effectiveTotalStake) * 100).toFixed(1)),
+    oneErrorScenarios,
+    minPayout1Error,
+    maxPayout1Error,
+    allProfitable1Error,
+    hasTwoErrorProtection: twoErrorScenarios.length > 0 && maxPayout2Error > 0,
+    minPayout2Error,
+    maxPayout2Error,
+    detailedBets
+  };
+}
+
+function renderSystemSection() {
+  return `<div id="system-content-root"></div>`;
+}
+
+function renderSystemSectionContent() {
+  const container = document.getElementById('system-content-root');
+  if (!container) return;
+
+  // Auto-init with AI combined or top matches if empty
+  if (systemState.selections.length === 0) {
+    if (combinedState.currentResult && Array.isArray(combinedState.currentResult.selections) && combinedState.currentResult.selections.length >= 3) {
+      systemState.selections = [...combinedState.currentResult.selections];
+    } else {
+      const analyzed = allMatches.filter(m => m.ai_prediction).slice(0, 4);
+      if (analyzed.length >= 3) {
+        systemState.selections = analyzed.map(m => {
+          const cleanSel = formatBetSelectionLabel(m.ai_prediction, '1N2', m.home_team, m.away_team);
+          const odd = getOddForSelection(m.ai_prediction, '1N2', m);
+          return {
+            id: m.id,
+            home_team: m.home_team,
+            away_team: m.away_team,
+            selection: cleanSel,
+            market: '1N2',
+            odds: odd
+          };
+        });
+      }
+    }
+  }
+
+  const n = systemState.selections.length;
+  const availableSystems = Object.keys(SYSTEM_DEFINITIONS).filter(k => {
+    if (k === 'auto') return true;
+    const def = SYSTEM_DEFINITIONS[k];
+    return n >= def.minSel && n <= def.maxSel;
+  });
+
+  const calc = n >= 3 ? calculateSystemBet(systemState.selections, systemState.systemKey, systemState.totalStake) : null;
+
+  container.innerHTML = `
+    <div class="system-section-layout">
+      
+      <!-- Top Hero Explanation -->
+      <div class="system-hero-card">
+        <div class="sh-icon">🛡️</div>
+        <div class="sh-body">
+          <div class="sh-title">Paris Système & Tolérance à l'Erreur</div>
+          <div class="sh-desc">
+            Ne perdez plus votre combiné à cause d'un seul match qui échoue ! Un pari système découpe vos sélections en sous-tickets pour vous <strong>garantir des gains même avec 1 ou 2 fautes</strong>.
+          </div>
+        </div>
+        <div class="sh-actions">
+          <button class="btn-sh-load-ai" onclick="loadAICombinedIntoSystem()">
+            <span>⚡</span> <span>Charger Combiné IA Actuel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Match Selector Card -->
+      <div class="system-card">
+        <div class="sc-header">
+          <div class="sc-title">
+            <span>🎯</span>
+            <h3>Sélections du Système (${n} matchs)</h3>
+          </div>
+          <div class="sc-header-actions">
+            <select class="sc-add-select" id="system-match-picker" onchange="addMatchToSystem(this.value)">
+              <option value="">➕ Ajouter un match au système...</option>
+              ${allMatches.filter(m => !systemState.selections.some(s => s.id === m.id)).map(m => `
+                <option value="${m.id}">${escapeHtml(m.home_team)} vs ${escapeHtml(m.away_team)} (${m.ai_prediction || '1N2'})</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+
+        ${n === 0 ? `
+          <div class="combined-empty">
+            <span>🔍</span>
+            <p>Aucun match sélectionné. Cliquez sur "Charger Combiné IA" ou ajoutez des matchs ci-dessus (minimum 3 sélections requis).</p>
+          </div>
+        ` : `
+          <div class="system-selections-grid">
+            ${systemState.selections.map((sel, idx) => `
+              <div class="system-sel-pill">
+                <span class="ssp-num">${idx + 1}</span>
+                <div class="ssp-info">
+                  <div class="ssp-teams">${escapeHtml(sel.home_team || 'Équipe 1')} vs ${escapeHtml(sel.away_team || 'Équipe 2')}</div>
+                  <div class="ssp-sel">${escapeHtml(sel.selection || 'Victoire')}</div>
+                </div>
+                <div class="ssp-odd">@${Number(sel.odds || 1.80).toFixed(2)}</div>
+                <button class="ssp-remove" onclick="removeMatchFromSystem(${idx})" title="Retirer ce match">✕</button>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      ${n < 3 ? `
+        <div class="system-warning-box">
+          ⚠️ <strong>3 sélections minimum</strong> sont requises pour composer un pari système (Trixie, 2/3, 3/4...). Veuillez ajouter au moins ${3 - n} match supplémentaire.
+        </div>
+      ` : `
+        <!-- Configuration & Controls -->
+        <div class="system-config-grid">
+          
+          <div class="system-card">
+            <h4 class="config-subtitle">⚙️ Formule de Système</h4>
+            <div class="system-type-picker">
+              ${availableSystems.map(k => {
+                const def = SYSTEM_DEFINITIONS[k];
+                const isActive = systemState.systemKey === k;
+                return `
+                  <div class="sys-type-card ${isActive ? 'active' : ''}" onclick="setSystemType('${k}')">
+                    <div class="stc-title">${escapeHtml(def.name)}</div>
+                    <div class="stc-label">${escapeHtml(def.label)}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="system-card">
+            <h4 class="config-subtitle">💰 Mise Totale & Répartition</h4>
+            <div class="system-stake-controls">
+              <div class="stake-field-wrap">
+                <label>Mise Totale (€)</label>
+                <input type="number" id="sys-total-stake" value="${systemState.totalStake}" min="1" step="1" oninput="setSystemTotalStake(this.value)" class="modal-input" />
+              </div>
+              <div class="stake-calc-wrap">
+                <span class="scw-label">Combinaisons :</span>
+                <span class="scw-val">${calc ? calc.totalBetsCount : 0} sous-paris</span>
+              </div>
+              <div class="stake-calc-wrap">
+                <span class="scw-label">Mise par pari :</span>
+                <span class="scw-val">${calc ? calc.stakePerBet.toFixed(2) : 0} €</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        ${calc ? `
+          <!-- Key Results Cards -->
+          <div class="system-metrics-grid">
+            <div class="sys-metric-card primary">
+              <span class="sm-label">Gain Maximum (0 faute)</span>
+              <span class="sm-val win">${calc.maxPayout.toFixed(2)} €</span>
+              <span class="sm-sub">Bénéfice Net : +${calc.maxProfit.toFixed(2)} € (${calc.maxRoi >= 0 ? '+' : ''}${calc.maxRoi}%)</span>
+            </div>
+
+            <div class="sys-metric-card ${calc.allProfitable1Error ? 'success' : 'warn'}">
+              <span class="sm-label">Gain Garanti avec 1 Erreur</span>
+              <span class="sm-val ${calc.allProfitable1Error ? 'win' : 'text-warn'}">
+                ${calc.minPayout1Error.toFixed(2)} € à ${calc.maxPayout1Error.toFixed(2)} €
+              </span>
+              <span class="sm-sub">
+                ${calc.allProfitable1Error 
+                  ? '🟢 Rentabilité 100% garantie avec 1 erreur !' 
+                  : '🟡 Capital partiellement amorti selon le match perdu'}
+              </span>
+            </div>
+
+            ${calc.hasTwoErrorProtection ? `
+              <div class="sys-metric-card">
+                <span class="sm-label">Gain si 2 Erreurs</span>
+                <span class="sm-val">${calc.minPayout2Error.toFixed(2)} € à ${calc.maxPayout2Error.toFixed(2)} €</span>
+                <span class="sm-sub">Protection supplémentaire active</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Scenario Breakdown Table -->
+          <div class="system-card">
+            <div class="sc-header">
+              <div class="sc-title">
+                <span>📋</span>
+                <h3>Scénarios Réels : Que se passe-t-il si un match échoue ?</h3>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="pro-bet-table">
+                <thead>
+                  <tr>
+                    <th>Scénario</th>
+                    <th>Match qui échoue</th>
+                    <th>Tickets Gagnants</th>
+                    <th>Gain Brut</th>
+                    <th>Bénéfice Net</th>
+                    <th>Verdict</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="background: rgba(16,185,129,0.06);">
+                    <td><strong>👑 100% Réussi</strong></td>
+                    <td><em>Aucun (Sans faute)</em></td>
+                    <td>${calc.totalBetsCount} sur ${calc.totalBetsCount}</td>
+                    <td><strong class="text-win">${calc.maxPayout.toFixed(2)} €</strong></td>
+                    <td><strong class="text-win">+${calc.maxProfit.toFixed(2)} €</strong></td>
+                    <td><span class="conf-pill pill-high">Jackpot Total</span></td>
+                  </tr>
+                  ${calc.oneErrorScenarios.map(sc => `
+                    <tr>
+                      <td><span class="role-badge role-secure">1 Erreur</span></td>
+                      <td><strong>${escapeHtml(sc.failedMatch)}</strong></td>
+                      <td>${sc.winningTicketsCount} ticket(s)</td>
+                      <td><span class="table-odd-pill">${sc.payout.toFixed(2)} €</span></td>
+                      <td><span class="${sc.profit >= 0 ? 'text-win' : 'text-loss'}">${sc.profit >= 0 ? '+' : ''}${sc.profit.toFixed(2)} €</span></td>
+                      <td>
+                        <span class="conf-pill ${sc.isProfitable ? 'pill-high' : 'pill-medium'}">
+                          ${sc.isProfitable ? '🟢 Bénéfice garanti' : '🟡 Mise amortie'}
+                        </span>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="system-save-row">
+              <button class="btn-system-bankroll" onclick="saveSystemBetToBankroll()">
+                <span>💰</span> <span>Enregistrer ce Système dans la Bankroll</span>
+              </button>
+            </div>
+          </div>
+        ` : ''}
+      `}
+
+    </div>
+  `;
+}
+
+function loadAICombinedIntoSystem() {
+  if (combinedState.currentResult && Array.isArray(combinedState.currentResult.selections) && combinedState.currentResult.selections.length >= 3) {
+    systemState.selections = [...combinedState.currentResult.selections];
+    showToast('✅ Sélections du combiné IA importées dans le mode Système !', 'success');
+  } else {
+    // Pick top 4 matches
+    const analyzed = allMatches.filter(m => m.ai_prediction).slice(0, 4);
+    if (analyzed.length >= 3) {
+      systemState.selections = analyzed.map(m => ({
+        id: m.id,
+        home_team: m.home_team,
+        away_team: m.away_team,
+        selection: formatBetSelectionLabel(m.ai_prediction, '1N2', m.home_team, m.away_team),
+        market: '1N2',
+        odds: getOddForSelection(m.ai_prediction, '1N2', m)
+      }));
+      showToast('✅ 4 matchs analysés chargés dans le Système !', 'success');
+    } else {
+      showToast('Veuillez analyser au moins 3 matchs au préalable.', 'warning');
+    }
+  }
+  renderSystemSectionContent();
+}
+
+function addMatchToSystem(matchId) {
+  if (!matchId) return;
+  const m = allMatches.find(x => x.id == matchId);
+  if (!m) return;
+  const cleanSel = formatBetSelectionLabel(m.ai_prediction, '1N2', m.home_team, m.away_team);
+  const odd = getOddForSelection(m.ai_prediction, '1N2', m);
+  systemState.selections.push({
+    id: m.id,
+    home_team: m.home_team,
+    away_team: m.away_team,
+    selection: cleanSel,
+    market: '1N2',
+    odds: odd
+  });
+  renderSystemSectionContent();
+}
+
+function removeMatchFromSystem(idx) {
+  systemState.selections.splice(idx, 1);
+  renderSystemSectionContent();
+}
+
+function setSystemType(key) {
+  systemState.systemKey = key;
+  renderSystemSectionContent();
+}
+
+function setSystemTotalStake(val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 0) {
+    systemState.totalStake = v;
+    renderSystemSectionContent();
+  }
+}
+
+function openSystemWithCurrent() {
+  if (combinedState.currentResult && Array.isArray(combinedState.currentResult.selections) && combinedState.currentResult.selections.length >= 3) {
+    systemState.selections = [...combinedState.currentResult.selections];
+  }
+  switchCombinedTab('system');
+}
+
+function saveSystemBetToBankroll() {
+  const calc = calculateSystemBet(systemState.selections, systemState.systemKey, systemState.totalStake);
+  if (!calc) return;
+
+  const title = `Pari Système ${calc.systemName} (${systemState.selections.length} matchs)`;
+  const selSummary = systemState.selections.map(s => `${(s.home_team || '').split(' ')[0]}: ${s.selection} @${s.odds}`).join(' | ');
+
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title,
+      selection: `${calc.systemName} : ${calc.totalBetsCount} combinaisons de ${calc.stakePerBet}€`,
+      market: 'Pari Système',
+      odds: parseFloat((calc.maxPayout / calc.totalStake).toFixed(2)),
+      stake: calc.totalStake,
+      bet_type: 'combined',
+      notes: `Système tolérant l'erreur. Gain max: ${calc.maxPayout}€ • Garanti si 1 erreur: ${calc.minPayout1Error}€ à ${calc.maxPayout1Error}€. Détail: ${selSummary}`
+    });
+  }
+}
+
+// ================================================================
+// HEDGING & CASHOUT SIMULATOR (COUVERTURE EN DIRECT)
+// ================================================================
+
+let hedgingState = {
+  initialStake: 20,
+  selections: [
+    { id: 1, home: 'Paris SG', away: 'Lens', selection: 'Victoire de Paris SG', odds: 1.80, status: 'won' },
+    { id: 2, home: 'Real Madrid', away: 'FC Séville', selection: 'Victoire de Real Madrid', odds: 1.75, status: 'won' },
+    { id: 3, home: 'Arsenal', away: 'Chelsea', selection: 'Plus de 2,5 Buts', odds: 1.90, status: 'won' },
+    { id: 4, home: 'Marseille', away: 'Nice', selection: 'Victoire de Marseille', odds: 1.85, status: 'pending', hedgeSelection: 'Nice ou Nul (Double Chance)', hedgeOdds: 2.05 }
+  ],
+  customHedgeOdds: 2.05,
+  customHedgeStake: null
+};
+
+function calculateHedgingParams() {
+  const S = Number(hedgingState.initialStake) || 20;
+  const sels = hedgingState.selections;
+
+  const totalOdds = sels.reduce((acc, s) => acc * (Number(s.odds) || 1), 1);
+  const initialGain = parseFloat((S * totalOdds).toFixed(2));
+
+  const wonSels = sels.filter(s => s.status === 'won');
+  const pendingSels = sels.filter(s => s.status === 'pending');
+  const lostSels = sels.filter(s => s.status === 'lost');
+
+  const wonOdds = wonSels.reduce((acc, s) => acc * (Number(s.odds) || 1), 1);
+
+  const lastPending = pendingSels.length === 1 ? pendingSels[0] : null;
+  const Oh = Math.max(1.05, Number(hedgingState.customHedgeOdds) || 2.05);
+  const Or = lastPending ? Math.max(1.05, Number(lastPending.odds) || 1.85) : 1.85;
+
+  // Strategy 1: Perfect Equal Net Profit (Risk-free Arbitrage)
+  const equalHedgeStake = parseFloat((initialGain / Oh).toFixed(2));
+  const equalNetProfit = parseFloat((initialGain - S - equalHedgeStake).toFixed(2));
+  const equalRoi = parseFloat(((equalNetProfit / (S + equalHedgeStake)) * 100).toFixed(1));
+
+  // Strategy 2: Capital Security (Guaranteed initial stake refund)
+  const refundHedgeStake = parseFloat((S / (Oh - 1)).toFixed(2));
+  const refundGainIfWin = parseFloat((initialGain - S - refundHedgeStake).toFixed(2));
+
+  // Strategy 3: Estimated Betclic Cashout offer
+  const fairCashout = initialGain / Or;
+  const estimatedCashout = parseFloat((fairCashout * 0.88).toFixed(2));
+  const cashoutProfit = parseFloat((estimatedCashout - S).toFixed(2));
+  const hedgingBonus = parseFloat((equalNetProfit - cashoutProfit).toFixed(2));
+
+  // Custom slider value
+  const chosenHedge = hedgingState.customHedgeStake !== null ? Number(hedgingState.customHedgeStake) : equalHedgeStake;
+  const customNetIfWin = parseFloat((initialGain - S - chosenHedge).toFixed(2));
+  const customNetIfHedge = parseFloat((chosenHedge * Oh - S - chosenHedge).toFixed(2));
+
+  return {
+    initialStake: S,
+    totalOdds: parseFloat(totalOdds.toFixed(2)),
+    initialGain,
+    wonCount: wonSels.length,
+    pendingCount: pendingSels.length,
+    lostCount: lostSels.length,
+    wonOdds: parseFloat(wonOdds.toFixed(2)),
+    lastPending,
+    hedgeOdds: Oh,
+    equalHedgeStake,
+    equalNetProfit,
+    equalRoi,
+    refundHedgeStake,
+    refundGainIfWin,
+    estimatedCashout,
+    cashoutProfit,
+    hedgingBonus,
+    chosenHedge,
+    customNetIfWin,
+    customNetIfHedge
+  };
+}
+
+function renderHedgingSection() {
+  return `<div id="hedging-content-root"></div>`;
+}
+
+function renderHedgingSectionContent() {
+  const container = document.getElementById('hedging-content-root');
+  if (!container) return;
+
+  const h = calculateHedgingParams();
+  const lastMatch = h.lastPending;
+
+  container.innerHTML = `
+    <div class="hedging-section-layout">
+      
+      <!-- Top Hero Card -->
+      <div class="hedging-hero-card">
+        <div class="hh-icon">⚖️</div>
+        <div class="hh-body">
+          <div class="hh-title">Simulateur de Cashout & Couverture (Hedging)</div>
+          <div class="hh-desc">
+            Vos premiers matchs sont passés ? <strong>Ne laissez plus le dernier match anéantir votre combiné !</strong>
+            Notre algorithme calcule la mise exacte à placer sur le marché opposé sur Betclic pour verrouiller un bénéfice 100% garanti quoi qu'il arrive.
+          </div>
+        </div>
+        <div class="hh-actions">
+          <button class="btn-sh-load-ai" onclick="loadAICombinedIntoHedging()">
+            <span>⚡</span> <span>Charger Combiné IA</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ticket Tracking Card -->
+      <div class="system-card">
+        <div class="sc-header">
+          <div class="sc-title">
+            <span>🎫</span>
+            <h3>Suivi des Sélections de votre Combiné</h3>
+          </div>
+          <div class="hedging-ticket-meta">
+            <span>Mise initiale : <strong>${h.initialStake}€</strong></span>
+            <span>Cote totale : <strong>${h.totalOdds}</strong></span>
+            <span class="text-win">Gain potentiel : <strong>${h.initialGain.toFixed(2)}€</strong></span>
+          </div>
+        </div>
+
+        <p class="hedging-help-text">
+          Cliquez sur les badges de statut pour indiquer l'état réel de vos matchs :
+        </p>
+
+        <div class="hedging-matches-list">
+          ${hedgingState.selections.map((s, idx) => {
+            const isWon = s.status === 'won';
+            const isPending = s.status === 'pending';
+            const isLost = s.status === 'lost';
+
+            return `
+              <div class="hedging-match-row ${s.status}">
+                <div class="hm-idx">${idx + 1}</div>
+                <div class="hm-teams">
+                  <strong>${escapeHtml(s.home || '')} vs ${escapeHtml(s.away || '')}</strong>
+                  <span class="hm-sel">${escapeHtml(s.selection || '')}</span>
+                </div>
+                <div class="hm-odd">@${Number(s.odds).toFixed(2)}</div>
+                <div class="hm-status-toggles">
+                  <button class="hm-btn-status ${isWon ? 'active won' : ''}" onclick="setHedgingMatchStatus(${idx}, 'won')">
+                    ✅ Passé
+                  </button>
+                  <button class="hm-btn-status ${isPending ? 'active pending' : ''}" onclick="setHedgingMatchStatus(${idx}, 'pending')">
+                    ⏳ En cours
+                  </button>
+                  <button class="hm-btn-status ${isLost ? 'active lost' : ''}" onclick="setHedgingMatchStatus(${idx}, 'lost')">
+                    ❌ Perdu
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      ${h.lostCount > 0 ? `
+        <div class="system-warning-box">
+          ❌ <strong>Ce combiné compte déjà un match perdu.</strong> La couverture n'est plus applicable sur ce ticket. Modifiez les statuts ou chargez un autre combiné.
+        </div>
+      ` : h.pendingCount !== 1 ? `
+        <div class="system-warning-box">
+          ℹ️ <strong>Pour activer la couverture optimale</strong>, validez les matchs déjà passés en cliquant sur "✅ Passé" afin de laisser exactement <strong>1 seul match restant</strong> en attente.
+        </div>
+      ` : `
+        <!-- Hedging Active Calculator -->
+        <div class="hedging-active-card">
+          
+          <div class="hac-header">
+            <span class="hac-badge">🎯 Opportunité de Couverture Détectée !</span>
+            <div class="hac-summary">
+              ${h.wonCount} matchs sur ${hedgingState.selections.length} déjà validés (Cote cumulée sécurisée : <strong>${h.wonOdds}</strong>)
+            </div>
+          </div>
+
+          <div class="hac-match-focus">
+            <div class="hmf-label">Dernier match décisif à couvrir :</div>
+            <div class="hmf-match">
+              ${escapeHtml(lastMatch.home)} vs ${escapeHtml(lastMatch.away)} — Pari initial : <strong>${escapeHtml(lastMatch.selection)} @ ${lastMatch.odds}</strong>
+            </div>
+            
+            <div class="hmf-opposing-row">
+              <div class="hmf-opp-field">
+                <label>Pari de Couverture à Jouer sur Betclic :</label>
+                <input type="text" class="modal-input" id="hedge-sel-name" value="${escapeHtml(lastMatch.hedgeSelection || 'Double Chance adverse')}" onchange="setHedgeSelectionName(this.value)" />
+              </div>
+              <div class="hmf-opp-field odds-field">
+                <label>Cote de la couverture :</label>
+                <input type="number" class="modal-input" id="hedge-odds-input" value="${h.hedgeOdds}" step="0.05" min="1.05" oninput="setHedgeOdds(this.value)" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Strategies Breakdown -->
+          <div class="hedging-modes-grid">
+            
+            <div class="hedge-mode-card highlight">
+              <div class="hmc-tag">🛡️ STRATÉGIE CONSEILLÉE</div>
+              <div class="hmc-title">Bénéfice Garanti Identique (Arbitrage Parfait)</div>
+              <p class="hmc-sub">Verrouillez le même gain net quel que soit le résultat du match, sans aucun stress.</p>
+              
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Mise de couverture exacte :</span>
+                <span class="hmc-m-val text-accent">${h.equalHedgeStake} €</span>
+              </div>
+              <div class="hmc-metric profit-metric">
+                <span class="hmc-m-label">Bénéfice Net 100% Assuré :</span>
+                <span class="hmc-m-val text-win">+${h.equalNetProfit} €</span>
+              </div>
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Rendement Garanti :</span>
+                <span class="hmc-m-val">+${h.equalRoi}%</span>
+              </div>
+            </div>
+
+            <div class="hedge-mode-card">
+              <div class="hmc-tag">💰 SÉCURITÉ MISE</div>
+              <div class="hmc-title">Remboursement Intégral du Ticket</div>
+              <p class="hmc-sub">Récupérez 100% de votre mise initiale en cas d'échec, tout en conservant le gros lot.</p>
+              
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Mise de couverture mini :</span>
+                <span class="hmc-m-val">${h.refundHedgeStake} €</span>
+              </div>
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Gain si le combiné gagne :</span>
+                <span class="hmc-m-val text-win">+${h.refundGainIfWin} €</span>
+              </div>
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Si le combiné perd :</span>
+                <span class="hmc-m-val text-win">0.00 € (Mise remboursée)</span>
+              </div>
+            </div>
+
+            <div class="hedge-mode-card cashout-compare">
+              <div class="hmc-tag">⚡ CASH-OUT BETCLIC</div>
+              <div class="hmc-title">Comparatif avec le Cashout Bookmaker</div>
+              <p class="hmc-sub">Le bouton Cashout Betclic applique une marge défavorable. Faites le calcul :</p>
+              
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Cashout estimé Betclic :</span>
+                <span class="hmc-m-val">~${h.estimatedCashout} €</span>
+              </div>
+              <div class="hmc-metric">
+                <span class="hmc-m-label">Bénéfice via Cashout Betclic :</span>
+                <span class="hmc-m-val">+${h.cashoutProfit} €</span>
+              </div>
+              <div class="hmc-metric profit-metric">
+                <span class="hmc-m-label">Gain supplémentaire en Hedging :</span>
+                <span class="hmc-m-val text-win">+${h.hedgingBonus} € (+12% à +15%)</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Interactive Slider -->
+          <div class="hedging-slider-card">
+            <div class="hsc-header">
+              <h4>🎛️ Curseur Interactif : Personnalisez votre niveau de couverture</h4>
+              <span class="hsc-stake-badge">Mise choisie : <strong>${h.chosenHedge} €</strong></span>
+            </div>
+            
+            <input type="range" class="hedging-range-slider" min="0" max="${Math.round(h.equalHedgeStake * 1.5)}" step="1" value="${h.chosenHedge}" oninput="setHedgeSliderStake(this.value)" />
+
+            <div class="hsc-bars-grid">
+              <div class="hsc-bar-card ${h.customNetIfWin >= 0 ? 'pos' : 'neg'}">
+                <div class="hsc-scenario">Si votre combiné passe (Marseille gagne)</div>
+                <div class="hsc-res ${h.customNetIfWin >= 0 ? 'text-win' : 'text-loss'}">
+                  ${h.customNetIfWin >= 0 ? '+' : ''}${h.customNetIfWin} € NET
+                </div>
+              </div>
+              <div class="hsc-bar-card ${h.customNetIfHedge >= 0 ? 'pos' : 'neg'}">
+                <div class="hsc-scenario">Si la couverture passe (Nice ou Nul)</div>
+                <div class="hsc-res ${h.customNetIfHedge >= 0 ? 'text-win' : 'text-loss'}">
+                  ${h.customNetIfHedge >= 0 ? '+' : ''}${h.customNetIfHedge} € NET
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div class="hedging-save-row">
+            <button class="btn-hedging-bankroll" onclick="saveHedgeBetToBankroll()">
+              <span>💰</span> <span>Enregistrer le Pari de Couverture dans ma Bankroll (${h.chosenHedge} € @ ${h.hedgeOdds})</span>
+            </button>
+          </div>
+
+        </div>
+      `}
+
+    </div>
+  `;
+}
+
+function setHedgingMatchStatus(idx, status) {
+  if (hedgingState.selections[idx]) {
+    hedgingState.selections[idx].status = status;
+    renderHedgingSectionContent();
+  }
+}
+
+function setHedgeOdds(val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 1) {
+    hedgingState.customHedgeOdds = v;
+    renderHedgingSectionContent();
+  }
+}
+
+function setHedgeSelectionName(val) {
+  const last = hedgingState.selections.find(s => s.status === 'pending');
+  if (last) last.hedgeSelection = val;
+}
+
+function setHedgeSliderStake(val) {
+  hedgingState.customHedgeStake = parseFloat(val);
+  renderHedgingSectionContent();
+}
+
+function loadAICombinedIntoHedging() {
+  if (combinedState.currentResult && Array.isArray(combinedState.currentResult.selections) && combinedState.currentResult.selections.length >= 2) {
+    const sels = combinedState.currentResult.selections;
+    const n = sels.length;
+    hedgingState.initialStake = combinedState.stake || 20;
+    hedgingState.selections = sels.map((s, idx) => ({
+      id: s.id || idx,
+      home: s.home_team || 'Équipe 1',
+      away: s.away_team || 'Équipe 2',
+      selection: formatBetSelectionLabel(s.selection, s.market, s.home_team, s.away_team),
+      odds: Number(s.odds) || 1.80,
+      status: idx < n - 1 ? 'won' : 'pending',
+      hedgeSelection: `Double Chance adverse (${s.away_team || 'Extérieur'} ou Nul)`,
+      hedgeOdds: 2.05
+    }));
+    hedgingState.customHedgeStake = null;
+    showToast('✅ Combiné IA importé : 3 premiers matchs simulés comme gagnés !', 'success');
+  } else {
+    showToast('Combiné de démonstration initialisé avec 3/4 matchs validés.', 'info');
+  }
+  renderHedgingSectionContent();
+}
+
+function openHedgingSimulatorWithCurrent() {
+  loadAICombinedIntoHedging();
+  switchCombinedTab('hedging');
+}
+
+function saveHedgeBetToBankroll() {
+  const h = calculateHedgingParams();
+  if (!h || !h.lastPending) return;
+
+  const title = `Couverture Combiné : ${h.lastPending.home} vs ${h.lastPending.away}`;
+  const sel = h.lastPending.hedgeSelection || 'Double Chance (Couverture)';
+
+  if (typeof openAddBetModal === 'function') {
+    openAddBetModal({
+      title,
+      selection: sel,
+      market: 'Couverture / Hedging',
+      odds: h.hedgeOdds,
+      stake: h.chosenHedge,
+      bet_type: 'single',
+      notes: `Couverture de combiné pour gain garanti. Si passe : +${h.customNetIfHedge}€ Net • Si combiné passe : +${h.customNetIfWin}€ Net.`
+    });
+  }
+}
+
 

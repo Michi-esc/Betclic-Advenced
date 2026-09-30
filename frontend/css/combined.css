@@ -76,15 +76,20 @@
 /* ── SUB-TABS BAR ── */
 .combined-tabs-bar {
   display: flex;
-  gap: 4px;
-  padding: 16px 28px 0;
+  gap: 6px;
+  padding: 16px 20px 0;
   border-bottom: 1px solid rgba(255,255,255,.06);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.combined-tabs-bar::-webkit-scrollbar { display: none; }
+
 .combined-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 22px;
+  padding: 10px 18px;
   border: 1px solid transparent;
   border-radius: 12px 12px 0 0;
   background: transparent;
@@ -93,6 +98,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all .2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .combined-tab:hover {
   background: rgba(255,255,255,.05);
@@ -1213,3 +1220,807 @@
   color: var(--text-muted);
   font-weight: 400;
 }
+
+/* ================================================================
+   SYSTEM BETS & HEDGING SIMULATOR STYLES
+   ================================================================ */
+
+/* Hero Cards */
+.system-hero-card, .hedging-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.hedging-hero-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(99, 102, 241, 0.1));
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.sh-icon, .hh-icon {
+  font-size: 2.8rem;
+  flex-shrink: 0;
+}
+
+.sh-body, .hh-body {
+  flex: 1;
+  min-width: 260px;
+}
+
+.sh-title, .hh-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.sh-desc, .hh-desc {
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.btn-sh-load-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-sh-load-ai:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+/* System Match Card */
+.system-card {
+  background: rgba(18, 24, 38, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 22px;
+}
+
+.sc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sc-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-title h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.sc-add-select {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.system-selections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.system-sel-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.system-sel-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ssp-num {
+  font-size: 0.8rem;
+  font-weight: 800;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ssp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ssp-teams {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ssp-sel {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ssp-odd {
+  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  font-weight: 800;
+  color: #fcd34d;
+  font-size: 0.9rem;
+}
+
+.ssp-remove {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.ssp-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* System Config */
+.system-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.config-subtitle {
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 14px;
+}
+
+.system-type-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sys-type-card {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sys-type-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sys-type-card.active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.stc-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stc-label {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.system-stake-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stake-field-wrap label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+
+.stake-calc-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.scw-label {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.scw-val {
+  font-weight: 800;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* System Metrics Grid */
+.system-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.sys-metric-card {
+  background: rgba(18, 24, 38, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sys-metric-card.primary {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.15), rgba(18, 24, 38, 0.9));
+}
+
+.sys-metric-card.success {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.sys-metric-card.warn {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.sm-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.sm-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sm-val.win {
+  color: #34d399;
+}
+
+.sm-sub {
+  font-size: 0.76rem;
+  color: #cbd5e1;
+}
+
+.system-save-row {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-system-bankroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-system-bankroll:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+}
+
+.system-warning-box {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+  font-size: 0.88rem;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+/* ================================================================
+   HEDGING & CASHOUT SIMULATOR STYLES
+   ================================================================ */
+.hedging-ticket-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  flex-wrap: wrap;
+}
+.hedging-ticket-meta strong {
+  color: #fff;
+}
+
+.hedging-help-text {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  margin-bottom: 14px;
+}
+
+.hedging-matches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hedging-match-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+}
+
+.hedging-match-row.won {
+  border-left: 4px solid #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+.hedging-match-row.pending {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+.hedging-match-row.lost {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.hm-idx {
+  font-size: 0.8rem;
+  font-weight: 800;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hm-teams {
+  flex: 1;
+  min-width: 180px;
+}
+.hm-teams strong {
+  display: block;
+  color: #fff;
+  font-size: 0.9rem;
+}
+.hm-sel {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.hm-odd {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  color: #fcd34d;
+  font-size: 0.95rem;
+}
+
+.hm-status-toggles {
+  display: flex;
+  gap: 6px;
+}
+
+.hm-btn-status {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hm-btn-status:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.hm-btn-status.active.won {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.hm-btn-status.active.pending {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.hm-btn-status.active.lost {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+/* Active Hedging Card */
+.hedging-active-card {
+  background: rgba(18, 24, 38, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.12);
+  margin-bottom: 24px;
+}
+
+.hac-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hac-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+.hac-summary {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+.hac-summary strong {
+  color: #fcd34d;
+}
+
+.hac-match-focus {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+}
+
+.hmf-label {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.hmf-match {
+  font-size: 1.05rem;
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.hmf-opposing-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hmf-opp-field {
+  flex: 1;
+  min-width: 220px;
+}
+
+.hmf-opp-field.odds-field {
+  max-width: 160px;
+}
+
+.hmf-opp-field label {
+  display: block;
+  font-size: 0.76rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* 3 Modes Grid */
+.hedging-modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.hedge-mode-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hedge-mode-card.highlight {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.15), rgba(18, 24, 38, 0.9));
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.15);
+}
+
+.hedge-mode-card.cashout-compare {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.hmc-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #a5b4fc;
+  margin-bottom: 4px;
+}
+.hedge-mode-card.highlight .hmc-tag {
+  color: #34d399;
+}
+.hedge-mode-card.cashout-compare .hmc-tag {
+  color: #fbbf24;
+}
+
+.hmc-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.hmc-sub {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-bottom: 14px;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.hmc-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.82rem;
+}
+.hmc-metric:last-child {
+  border-bottom: none;
+}
+
+.hmc-m-label {
+  color: #cbd5e1;
+}
+
+.hmc-m-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  color: #fff;
+}
+
+.hmc-metric.profit-metric .hmc-m-val {
+  font-size: 1.15rem;
+}
+
+/* Slider Card */
+.hedging-slider-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 22px;
+}
+
+.hsc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hsc-header h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.hsc-stake-badge {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+.hsc-stake-badge strong {
+  color: #60a5fa;
+  font-size: 1.05rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hedging-range-slider {
+  width: 100%;
+  accent-color: #6366f1;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.hsc-bars-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.hsc-bar-card {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.hsc-bar-card.pos {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.hsc-bar-card.neg {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.hsc-scenario {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.hsc-res {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.hedging-save-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-hedging-bankroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-hedging-bankroll:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
+}
+
+/* Quick Jump buttons in AI Combined card */
+.rc-action-row, .rs-action-row {
+  margin-top: 12px;
+  display: flex;
+}
+
+.btn-jump-hedging, .btn-jump-system {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-jump-hedging {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.btn-jump-hedging:hover {
+  background: rgba(245, 158, 11, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-jump-system {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+.btn-jump-system:hover {
+  background: rgba(99, 102, 241, 0.35);
+  transform: translateY(-1px);
+}
+
