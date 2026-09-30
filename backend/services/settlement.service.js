@@ -107,8 +107,12 @@ async function resolveMatchScore(match) {
   if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE') {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const prompt = `Quel est le score final officiel du match de football suivant :
+      const candidates = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
+      let res = null;
+      for (const modelName of candidates) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const prompt = `Quel est le score final officiel du match de football suivant :
 Date: ${match.match_date}
 Compétition: ${match.competition}
 Équipe Domicile: ${match.home_team}
@@ -121,8 +125,11 @@ Réponds STRICTEMENT sous format JSON valide avec cette structure exacte :
   "score_away": 1
 }
 Si le match n'est pas encore joué ou n'est pas terminé, retourne : { "finished": false, "score_home": null, "score_away": null }`;
-
-      const res = await model.generateContent(prompt);
+          res = await model.generateContent(prompt);
+          if (res) break;
+        } catch (_) {}
+      }
+      if (!res) throw new Error('Aucun modèle Gemini disponible');
       const text = res.response.text().trim();
       const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
       const jsonStart = cleaned.indexOf('{');

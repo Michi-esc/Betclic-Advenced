@@ -29,7 +29,7 @@ async function processMatchLineups(match) {
   if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE') {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const candidates = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
 
       const prompt = `Match de football à H-1 du coup d'envoi :
 Date : ${match.match_date} à ${match.match_time || '20:45'}
@@ -53,7 +53,15 @@ Réponds STRICTEMENT sous format JSON valide avec cette structure exacte :
   "notes": "Les 11 titulaires officiels confirment la supériorité technique attendue. Aucune mauvaise surprise de vestiaire."
 }`;
 
-      const res = await model.generateContent(prompt);
+      let res = null;
+      for (const modelName of candidates) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          res = await model.generateContent(prompt);
+          if (res) break;
+        } catch (_) {}
+      }
+      if (!res) throw new Error('Aucun modèle Gemini disponible');
       const text = res.response.text().trim();
       const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
       const jsonStart = cleaned.indexOf('{');
