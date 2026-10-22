@@ -10,6 +10,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: APP_PASSWORD
-        value: "221017"
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
       - key: GEMINI_API_KEY
         sync: false

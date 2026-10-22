@@ -4,14 +4,20 @@ const webpush = require('web-push');
 const db = require('../db');
 
 // VAPID keys for direct Web Push notifications (PWA / Mobile / Desktop)
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BL-sAx19qoVET4ZsIurUYn8geoHwYviyzND82afUDIZqBoWezte7H_NVG2ffBW-cUpMQktR2GLYA1FS66IHoeLI';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'tlE6zD_L4Hni1xvnmkI_wX1Cb0tLDPYsfQFkNBFps50';
+// Generate a pair with `npx web-push generate-vapid-keys` and set them as environment variables.
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+const WEB_PUSH_ENABLED = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
 
-webpush.setVapidDetails(
-  'mailto:contact@betclic-ai.pro',
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+if (WEB_PUSH_ENABLED) {
+  webpush.setVapidDetails(
+    'mailto:contact@betclic-ai.pro',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+} else {
+  console.log('⚠️  VAPID keys not set - Web Push notifications are disabled');
+}
 
 /**
  * Get active notification settings from DB or process.env
@@ -44,6 +50,9 @@ function getNotificationSettings() {
  * Send Direct Web Push notification to all registered phones/devices
  */
 async function sendWebPush(title, body, url = '/') {
+  if (!WEB_PUSH_ENABLED) {
+    return { success: false, sent: 0, reason: 'Web Push désactivé : clés VAPID non configurées' };
+  }
   let subscriptions = [];
   try {
     subscriptions = db.prepare('SELECT * FROM push_subscriptions').all();

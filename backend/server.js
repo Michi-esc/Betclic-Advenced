@@ -44,8 +44,13 @@ initAI(process.env.GEMINI_API_KEY);
 // ============================================================
 // AUTHENTICATION & SINGLE-USER PROTECTION
 // ============================================================
-const APP_PASSWORD = (process.env.APP_PASSWORD || '221017').trim();
-const VALID_PASSWORDS = [APP_PASSWORD, '221017', 'betclic2026'].filter(Boolean);
+// The password must come from the environment (Render dashboard or local .env), never from the code.
+const APP_PASSWORD = (process.env.APP_PASSWORD || '').trim();
+if (!APP_PASSWORD) {
+  console.error('❌ APP_PASSWORD is not set: define it in your .env file or in the Render dashboard.');
+  process.exit(1);
+}
+const VALID_PASSWORDS = [APP_PASSWORD];
 
 // Deterministic token based on secret password so server reboots don't log out user
 const AUTH_TOKEN = crypto.createHash('sha256').update(APP_PASSWORD + '_betclic_salt_2026').digest('hex');
